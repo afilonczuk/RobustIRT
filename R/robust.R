@@ -49,24 +49,29 @@ huber<-function(r, H){
 }
 
 
-#' Ability Estimation Function using MLE
+#' Ability Estimation Function Using Robust Estimation
 #'
 #' This function return the list of ability estimations based on the given weighting function
 #' @param dat Response data to load
 #' @param a Matrix of slope parameters
 #' @param d Array of intercept parameters
 #' @param iter Max number of iterations. Default is 100
+#' @param cutoff Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged.
 #' @param theta.initial Array of initial thetas. Default is 0s
-#' @param weight.category The weighting strategy to use, "normal", "bisquare" and "Huber". Default is "normal", which is equally weighted.
+#' @param weight.category The weighting strategy to use, "equal", "bisquare" and "Huber". Default is "equal", which is equally weighted.
 #' @param tuning.par The tuning parameter for "bisquare" or "Huber" weighting functions
-#' @details Huber weighting function
+#' @details Bisquqre weighting function
+#' \deqn{\omega(r_i)=\begin{cases}[1-(r_i/B)^2]^2, & \text{if} |r_i|\leq B.\\0, & \text{if} |r_i|>B.\end{cases}}
+#' Huber weighting function
+#' \deqn{\omega(r_i)=\begin{cases}1, & \text{if} |r_i|\leq H.\\H/|r_i|, & \text{if} |r_i|>H.\end{cases}}
+#' where \eqn{r_i} measures the inconsistency of a response of item i from the subject's assumed response model. Mislevy and Bock proposed a residual for the unidimentional case, \deqn{r_i=a_i(\theta-b_i)}
 #' @return Array of estimated person abilities
 #' @export
-theta.recov <- function(dat, a, d, iter=100, theta.initial=rep(0,ncol(a)), weight.category="normal", tuning.par=NULL){
-  # first to check if the turning parameter is given when the weight.category is not "normal"
-  if (weight.category != "normal") {
+theta.est <- function(dat, a, d, iter=100, cutoff=0.01, theta.initial=rep(0,ncol(a)), weight.type="equal", tuning.par=NULL){
+  # first to check if the turning parameter is given when the weight.type is not "normal"
+  if (weight.category != "equal") {
     if (is.null(tuning.par)) {
-      stop(paste("The turning parameter cannot be null when the weighting strategy is ", weight.category, sep = ""))
+      stop(paste("The turning parameter cannot be null when the weight.type is ", weight.category, sep = ""))
     }
   }
   dim <- ncol(a) #number of dimensions
@@ -100,7 +105,7 @@ theta.recov <- function(dat, a, d, iter=100, theta.initial=rep(0,ncol(a)), weigh
         }
       }
       if(any(is.na(theta-solve(Hess)%*%D1))){
-        break # break if noncomverging
+        break # break if not converging
       }
       theta <- theta-solve(Hess)%*%D1 #update theta
       # print(theta) #view convergence of theta for debugging purposes
