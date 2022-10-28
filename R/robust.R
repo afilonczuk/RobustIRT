@@ -116,7 +116,7 @@ data.gen<-function(P){
 #'
 #' This function return the list of ability estimations based on the given weighting function
 #' @param dat A \eqn{n \times m} matrix of dichotomously-coded data where 1 represents an endorsed response and 0 represents a non-endorsed response. \emph{n} is the test length and \emph{m} is the number of subjects.
-#' @param a A \eqn(p\timesn} matrix containing fixed item slope parameters for \emph{n} items and \emph{p} dimensions
+#' @param a A \eqn{p\timesn} matrix containing fixed item slope parameters for \emph{n} items and \emph{p} dimensions
 #' @param d A vector of length \emph{n} containing fixed intercept parameters for n items
 #' @param iter Maximum number of iterations for the Newton-Rapshon method. Default is 100.
 #' @param cutoff Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged. Default is 0.01.

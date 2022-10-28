@@ -7,15 +7,15 @@
 probs.gen(thetas, a, d)
 }
 \arguments{
-\item{thetas}{An array of person abilities}
+\item{thetas}{A vector of length p containing students’ latent traits, where p is the number of test dimensions}
 
-\item{a}{A matrix of slope parameters}
+\item{a}{A p x n matrix containing fixed item slope parameters}
 
-\item{d}{Array of intercept parameters}
+\item{d}{A vector of length n containing fixed intercept parameters, for n test items}
 }
 \value{
-Array of probabilities of having correct response
+A vector of probabilities of endorsing each of n test items
 }
 \description{
-This function calculates the probabilities of get items correct given person's abilities and item parameters
+This function calculates the probabilities of getting items correct given person's abilities and item parameters
 }

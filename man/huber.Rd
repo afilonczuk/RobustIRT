@@ -7,13 +7,13 @@
 huber(r, H)
 }
 \arguments{
-\item{r}{Residual that measures the inconsistency of a response from the subject's assumed response model}
+\item{r}{A residual that measures the inconsistency of a response from the subject's assumed response model, on one item}
 
-\item{H}{Huber tuning parameters}
+\item{H}{Huber tuning parameter}
 }
 \value{
-Huber weighting function
+Huber weight value
 }
 \description{
-This function return the value of Huber weighting value given Residual and Huber tuning paramter
+This function returns the value of the Huber weight given a residual and Huber tuning paramter
 }

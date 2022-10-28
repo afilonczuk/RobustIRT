@@ -7,13 +7,13 @@
 bisquare(r, B)
 }
 \arguments{
-\item{r}{Residual that measures the inconsistency of a response from the subject's assumed response model}
+\item{r}{A residual that measures the inconsistency of a response from the subject's assumed response model, on one item}
 
-\item{B}{Bisquare tuning parameters}
+\item{B}{Bisquare tuning parameter}
 }
 \value{
-Bisquare weighting function
+Bisquare weight value
 }
 \description{
-This function return the value of bisquare weighting value given Residual and bisquare tuning paramter
+This function returns the value of the bisquare weight given a residual and bisquare tuning paramter
 }

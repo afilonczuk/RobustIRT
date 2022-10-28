@@ -8,40 +8,47 @@ theta.est(
   dat,
   a,
   d,
-  iter = 100,
+  iter = 30,
   cutoff = 0.01,
-  theta.initial = rep(0, ncol(a)),
+  theta0 = rep(0, ncol(a)),
   weight.type = "equal",
   tuning.par = NULL
 )
 }
 \arguments{
-\item{dat}{Response data to load}
+\item{dat}{A \eqn{n \times m} matrix of dichotomously-coded data where 1 represents an endorsed response and 0 represents a non-endorsed response. \emph{n} is the test length and \emph{m} is the number of subjects.}
 
-\item{a}{Matrix of slope parameters}
+\item{a}{A \eqn{p\timesn} matrix containing fixed item slope parameters for \emph{n} items and \emph{p} dimensions}
 
-\item{d}{Array of intercept parameters}
+\item{d}{A vector of length \emph{n} containing fixed intercept parameters for n items}
 
-\item{iter}{Max number of iterations. Default is 100}
+\item{iter}{Maximum number of iterations for the Newton-Rapshon method. Default is 100.}
 
-\item{cutoff}{Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged.}
+\item{cutoff}{Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged. Default is 0.01.}
 
-\item{theta.initial}{Array of initial thetas. Default is 0s}
+\item{tuning.par}{The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting.}
 
-\item{tuning.par}{The tuning parameter for "bisquare" or "Huber" weighting functions}
+\item{theta.initial}{A vector of length \emph{p} containing initial latent trait values for the maximum likelihood estimation. The default is 0 for each of the \emph{p} dimensions.}
 
-\item{weight.category}{The weighting strategy to use, "equal", "bisquare" and "Huber". Default is "equal", which is equally weighted.}
+\item{weight.category}{The weighting strategy to use: "equal", "bisquare", or "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.}
 }
 \value{
-Array of estimated person abilities
+An array of estimated person abilities
 }
 \description{
 This function return the list of ability estimations based on the given weighting function
 }
 \details{
-Bisquqre weighting function
+The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
+The contribution of item \emph{i} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_i)} as a function of a residual \eqn{r_i} for the item \emph{i}:
+\deqn{\sum_i^n \omega(r_i) \frac{\partial}{\partial\boldsymbol\theta} \ln L(\boldsymbol\theta;x_i) = 0 }
+The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_i = \textbf a_i\boldsymbol\theta + d_i } in the multidimensional case.
+Two types of weight functions are used: Tukey's bisquare weighting function (Mosteller & Tukey, 1977)
 \deqn{\omega(r_i)=\begin{cases}[1-(r_i/B)^2]^2, & \text{if} |r_i|\leq B.\\0, & \text{if} |r_i|>B.\end{cases}}
-Huber weighting function
+and the Huber weighting function (Huber, 1981)
 \deqn{\omega(r_i)=\begin{cases}1, & \text{if} |r_i|\leq H.\\H/|r_i|, & \text{if} |r_i|>H.\end{cases}}
-where \eqn{r_i} measures the inconsistency of a response of item i from the subject's assumed response model. Mislevy and Bock proposed a residual for the unidimentional case, \deqn{r_i=a_i(\theta-b_i)}
+Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
+Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
+Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
+Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
 }
