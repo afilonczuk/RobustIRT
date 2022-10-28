@@ -49,6 +49,40 @@ and the Huber weighting function (Huber, 1981)
 \deqn{\omega(r_i)=\begin{cases}1, & \text{if} |r_i|\leq H.\\H/|r_i|, & \text{if} |r_i|>H.\end{cases}}
 Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
 }
+\examples{
+#test length
+n <- 30
+
+## number of iterations of newton's method
+iter <- 15
+
+## number of dim
+dim <- 3
+
+## correlation between one person's thetas
+cor <- .6
+
+## Covariance Matrix for generating thetas
+sigma <- matrix(cor, ncol = dim, nrow = dim)
+diag(sigma) <- 1
+s <- rep(1, dim)
+sigma <- s*sigma*s
+
+## Generate real thetas
+thetas <- matrix(mvrnorm(n = 1, rep(0,dim), Sigma = sigma), ncol = dim)
+
+## Generate slope parameters
+a <- matrix(runif(n*dim, .5, 1.5), nrow = n, ncol = dim)
+## Generate intercept parameters
+d <- matrix(rnorm(n), ncol = 1)
+## Generate probabilities
+probs <- probs.gen(thetas, a, d)
+## Generate input data from probabilities
+dat <- apply(probs$P, c(1,2), function(x) rbinom(1,1,x))
+
+## Estimate thetas
+theta.est(dat, a, d, iter = 15, theta0=matrix(rep(0,dim)), weight.type="Huber", tuning.par=1)
+}
 \references{
 Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
 

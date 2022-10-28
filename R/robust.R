@@ -137,9 +137,43 @@ data.gen<-function(P){
 #' @references Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
 #' @return An array of estimated person abilities
 #' @export
+#'
+#' @examples
+#' #test length
+#' n <- 30
+#'
+#' ## number of iterations of newton's method
+#' iter <- 15
+#'
+#' ## number of dim
+#' dim <- 3
+#'
+#' ## correlation between one person's thetas
+#' cor <- .6
+#'
+#' ## Covariance Matrix for generating thetas
+#' sigma <- matrix(cor, ncol = dim, nrow = dim)
+#' diag(sigma) <- 1
+#' s <- rep(1, dim)
+#' sigma <- s*sigma*s
+#'
+#' ## Generate real thetas
+#' thetas <- matrix(mvrnorm(n = 1, rep(0,dim), Sigma = sigma), ncol = dim)
+#'
+#' ## Generate slope parameters
+#' a <- matrix(runif(n*dim, .5, 1.5), nrow = n, ncol = dim)
+#' ## Generate intercept parameters
+#' d <- matrix(rnorm(n), ncol = 1)
+#' ## Generate probabilities
+#' probs <- probs.gen(thetas, a, d)
+#' ## Generate input data from probabilities
+#' dat <- apply(probs$P, c(1,2), function(x) rbinom(1,1,x))
+#'
+#' ## Estimate thetas
+#' theta.est(dat, a, d, iter = 15, theta0=matrix(rep(0,dim)), weight.type="Huber", tuning.par=1)
 
 theta.est<-function(dat, a, d, iter=30, cutoff=.01, theta0=rep(0,ncol(a)), weight.type="equal", tuning.par=NULL){
-  # first to check if the turning parameter is given when the weight.type is not "normal"
+  # first to check if the turning parameter is given when the weight.type is not "equal"
   if (weight.type != "equal") {
     if (is.null(tuning.par)) {
       stop(paste("The turning parameter cannot be null when the weight.type is ", weight.type, sep = ""))
