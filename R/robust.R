@@ -120,13 +120,13 @@ data.gen<-function(P){
 #' @param d A vector of length \emph{n} containing fixed intercept parameters for n items
 #' @param iter Maximum number of iterations for the Newton-Rapshon method. Default is 100.
 #' @param cutoff Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged. Default is 0.01.
-#' @param theta.initial A vector of length \emph{p} containing initial latent trait values for the maximum likelihood estimation. The default is 0 for each of the \emph{p} dimensions. 
+#' @param theta.initial A vector of length \emph{p} containing initial latent trait values for the maximum likelihood estimation. The default is 0 for each of the \emph{p} dimensions.
 #' @param weight.category The weighting strategy to use: "equal", "bisquare", or "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.
-#' @param tuning.par The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting. 
-#' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates. 
-#' The contribution of item \emph{i} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_i)} as a function of a residual \eqn{r_i} for the item \emph{i}: 
-#' \deqn{\sum_i^n \omega(r_i) \frac{\partial}{\partial\boldsymbol\theta} \ln L(\boldsymbol\theta;x_i) = 0 } 
-#' The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_i = \textbf a_i\boldsymbol\theta + d_i } in the multidimensional case. 
+#' @param tuning.par The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting.
+#' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
+#' The contribution of item \emph{i} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_i)} as a function of a residual \eqn{r_i} for the item \emph{i}:
+#' \deqn{\sum_i^n \omega(r_i) \frac{\partial}{\partial\boldsymbol\theta} \ln L(\boldsymbol\theta;x_i) = 0 }
+#' The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_i = \textbf a_i\boldsymbol\theta + d_i } in the multidimensional case.
 #' Two types of weight functions are used: Tukey's bisquare weighting function (Mosteller & Tukey, 1977)
 #' \deqn{\omega(r_i)=\begin{cases}[1-(r_i/B)^2]^2, & \text{if} |r_i|\leq B.\\0, & \text{if} |r_i|>B.\end{cases}}
 #' and the Huber weighting function (Huber, 1981)
@@ -137,28 +137,32 @@ data.gen<-function(P){
 #' Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
 #' @return An array of estimated person abilities
 #' @export
-theta.est <- function(dat, a, d, iter=100, cutoff=0.01, theta.initial=rep(0,ncol(a)), weight.type="equal", tuning.par=NULL){
+
+theta.est<-function(dat, a, d, iter=30, cutoff=.01, theta0=rep(0,ncol(a)), weight.type="equal", tuning.par=NULL){
   # first to check if the turning parameter is given when the weight.type is not "normal"
   if (weight.type != "equal") {
     if (is.null(tuning.par)) {
       stop(paste("The turning parameter cannot be null when the weight.type is ", weight.type, sep = ""))
     }
   }
-  dim <- ncol(a) #number of dimensions
-  n <- length(d) #number of items
-  N <- length(dat)/n #number of subjects
-  D <- 1.7
-  theta.out <- matrix(nrow = N, ncol = dim)
+  dim<-ncol(a) #number of dimensions
+  n<-length(d) #number of items
+  N<-ncol(dat) #number of subjects
+  D<-1.7
+
+  theta.out<-matrix(nrow = N, ncol = dim)
+  convergence<-matrix(0, nrow=N, ncol = dim)
   theta.progression<-array(NA, dim = c(dim, iter, N))
   residual<-matrix(data=NA, nrow = n, ncol = N)
+
   for (i in 1:N){ #looping over subjects if more than one
-    theta <- matrix(theta.initial, nrow = ncol(a), byrow = T)
-    P0 <- 0 #starting probability for calculating likelihood for convergence
+    theta<-matrix(theta0, nrow = ncol(a), byrow = T)
+    P0<-0 #starting probability for calculating likelihood for convergence
     for(j in 1:iter){ #prespecified iterations of Newton-Raphson Algorithm
-      ex <- a%*%theta+d #residual
-      P <- 1/(1+exp(-D*ex))
-      Hess <- matrix(ncol = dim, nrow = dim)
-      D1 <- matrix(nrow=dim)
+      ex<-a%*%theta+d #residual
+      P<-1/(1+exp(-D*ex))
+      Hess<-matrix(ncol = dim, nrow = dim)
+      D1<-matrix(nrow=dim)
       for(k in 1:dim){
         weighting.term <- NULL
         if (weight.type == "bisqure") {
@@ -177,22 +181,40 @@ theta.est <- function(dat, a, d, iter=100, cutoff=0.01, theta.initial=rep(0,ncol
           Hess[k,l] <- (-(D)^2)*sum(weighting.term*a[,k]*a[,l]*(1-P)*(P)) #Hessian matrix of 2nd derivatives
         }
       }
-
+      if(is.singular.matrix(Hess)){ #check if Hessian matrix is singular
+        convergence[i,]<-rep("Singular", dim)
+        for(h in 1:dim){ #bound theta estimates between -3 and 3
+          if(theta[h]>3){theta[h]<-NA}else if(theta[h]<(-3)){theta[h]<-NA}
+        }
+        break
+      }
       if(any(is.na(theta-solve(Hess)%*%D1))){
-        break # break if not converging
+        theta.out[i,]<-theta<-theta-solve(Hess)%*%D1
+        convergence[i,]<-as.numeric(is.na(theta.out[i,]))
+        break # break if noncomverging
       }
-      theta <- theta-solve(Hess)%*%D1 #update theta
-      # print(theta) #view convergence of theta for debugging purposes
-      for(h in 1:dim){ #bound theta estimates between -3 and 3
-        if(theta[h] > 3){theta[h] <- 3}
-        if(theta[h] < -3){theta[h] <- -3}
+      theta<-theta-solve(Hess)%*%D1 #update theta
+      residual[,i]<-ex
+      log_like<-sum(log(P))-sum(log(P0)) #compare log-likelihood with log-likelihood from previous iteration for convergence criterion
+      if(abs(log_like)<cutoff){
+        break
       }
+      P0<-P
+      theta.progression[,j,i]<-theta
+      #print(theta) #view convergence of theta for debugging purposes
     }
-    theta.out[i,] <- theta
+    if(j==iter){#if theta never converged to tolerance
+      theta.out[i,]<-theta<-rep(NA, dim)
+      convergence[i,]<-rep(1, dim)
+    }
+    for(h in 1:dim){ #bound theta estimates between -3 and 3
+      if(!is.na(theta[h]) & theta[h]>3){theta[h]<-3}
+      if(!is.na(theta[h]) & theta[h]<(-3)){theta[h]<-(-3)}
+    }
+    theta.out[i,]<-theta
   }
-  return(theta.out)
+  return(list(Theta = theta.out, Convergence = convergence, theta.progression = theta.progression, residual=residual))
 }
-
 
 #' Ability Estimation Function Using Robust Estimation
 #'
