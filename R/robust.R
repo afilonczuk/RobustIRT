@@ -356,3 +356,225 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, theta.initial=rep(0,nco
   }
   return(list(theta = theta.est2, convergence=convergence, theta.progression = theta.progression, residual=residual))
 }
+
+#' Plot histogram of residuals along plot of weight (dependent on TuCo) vs residuals
+#'
+#' This function plots histogram of residuals along plot of weight (dependent on TuCo) vs residuals
+#' @param r r is a vector of residuals
+#' @param H Huber tuning parameter
+#' @param B Bisquare tuning parameter
+#' @details <please add some details here>
+#' @return Histogram plot
+#' @export
+choose.tuco<-function(r, H=NULL, B=NULL){
+  # r is a vector of residuals
+  residuals<-data.frame(Residual =r)
+  hist.out<-ggplot(residuals, aes(x=Residual))+geom_histogram(aes(y = ..density..), bins=50)+ ylab("Density")
+  if(!is.null(H) & !is.null(B)){
+    weight.out<-ggplot()+stat_function(fun=function(x) huber(x, H), aes(colour = "Huber"))+
+      stat_function(fun=function(x) bisquare(x, B),  aes(colour = "Bisquare"))+
+      xlim(min(r, na.rm =T), max(r, na.rm =T)) + ylab("Weight")+
+      scale_color_manual(name = "Function", breaks=c('Bisquare', 'Huber'),
+                         values=c('Bisquare'="darkcyan", 'Huber'='firebrick')) +theme(legend.position = c(.9, .74))+
+      ggtitle("Weights Applied in Estimation")
+    return(do.call(ggarrange, c(list(weight.out, hist.out+ggtitle("Histogram of Residuals")), ncol = 1, nrow = 2)))
+  }else if(is.null(H) & !is.null(B)){
+    weight.out<-ggplot()+stat_function(fun=function(x) bisquare(x, B), aes(colour = "Bisquare"))+
+      xlim(min(r, na.rm =T), max(r, na.rm =T)) + ylab("Weight")+
+      scale_color_manual(name = "Function", breaks=c('Bisquare'),
+                         values=c('Bisquare'="darkcyan")) +theme(legend.position = c(.9, .74))+
+      ggtitle("Weights Applied in Estimation")
+    return(do.call(ggarrange, c(list(weight.out, hist.out+ggtitle("Histogram of Residuals")), ncol = 1, nrow = 2)))
+  }else if(is.null(B) & !is.null(H)){
+    weight.out<-ggplot()+stat_function(fun=function(x) huber(x, H), aes(colour = "Huber"))+
+      xlim(min(r, na.rm =T), max(r, na.rm =T)) + ylab("Weight")+
+      scale_color_manual(name = "Function", breaks=c('Huber'),
+                         values=c('Huber'='firebrick')) +theme(legend.position = c(.9, .74))+
+      ggtitle("Weights Applied in Estimation")
+    return(do.call(ggarrange, c(list(weight.out, hist.out+ggtitle("Histogram of Residuals")), ncol = 1, nrow = 2)))
+  }else {
+    return(hist.out+ggtitle("Histogram of Residuals"))
+  }
+}
+
+#' Plot to compare robust estimates with MLE
+#'
+#' This function plots Robust Estimates vs the MLE
+#' @param dat Response data to load
+#' @param a Matrix of slope parameters
+#' @param b Array of intercept parameters
+#' @param iter Max number of iterations. Default is 100
+#' @param crit.val Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged.
+#' @param H Huber tuning parameter
+#' @param B Bisquare tuning parameter
+#' @param same.plot.dim If in same plot
+#' @param same.plot If allow user to have sperate plots or see both Huber and Bisquare at same time
+#' @param type MIRT or GRM
+#' @details <please add some details here>
+#' @return Histogram plot
+#' @export
+theta_plots<-function(dat, a, d, iter=30, crit.val=0.01, H=NULL, B=NULL, same.plot.dim = F, same.plot = T, type){
+  if(type != "MIRT" & type != "GRM"){
+    return(print("Please enter a valid type of model (e.g., 'MIRT' or 'GRM')."))
+  }else if(type == "MIRT"){
+    h.plots<-b.plots<-list()
+    if(!same.plot.dim){
+      theta_estimate=theta.est(dat, a,d, iter, crit.val, theta0=rep(0,ncol(a)), weight.type = "equal")$Theta
+      dim<-ncol(theta_estimate) #number of dimensions
+      n<-nrow(theta_estimate) #number of subjects
+
+      if(!is.null(H) & !is.null(B)){
+        huber_theta_estimate=theta.est(dat, a,d, iter, crit.val, theta0=rep(0,ncol(a)), weight.type = "Huber", tuning.par = H)$Theta
+        bisquare_theta_estimate=theta.est(dat, a,d, iter, crit.val, theta0=rep(0,ncol(a)), weight.type = "bisquare", tuning.par = B)$Theta
+
+        for(i in 1:dim){
+          #message(i)
+          h.plots[[i]] <- local({
+            i <- i
+            huberplot<- ggplot(mapping = aes (x = theta_estimate[,i], y = huber_theta_estimate[,i]))+ geom_abline(color = "red", slope = 1) +
+              geom_point() + xlab(bquote(hat(theta)[MLE])) + ylab(bquote(hat(theta)[Huber] ~ " " ~ (H== .(H) ))) +
+              ggtitle(bquote("Huber-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE, Dimension" ~ .(i) ))
+          })
+          b.plots[[i]] <- local({
+            i <- i
+            bisquareplot<- ggplot(mapping = aes (x = theta_estimate[,i], y = bisquare_theta_estimate[,i]))+ geom_abline(color = "red", slope = 1) +
+              geom_point()+ xlab(bquote(hat(theta)[MLE])) + ylab(bquote(hat(theta)[Bisquare] ~ " " ~ (B== .(B) ))) +
+              ggtitle(bquote("Bisquare-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE, Dimension" ~ .(i) ))
+          })
+        }
+        return(list(do.call(ggarrange, c(h.plots, ncol = 1, nrow = dim, common.legend = T)), do.call(ggarrange, c(b.plots, ncol = 1, nrow = 3, common.legend = T))))
+      }else if(is.null(H) & !is.null(B)){
+        bisquare_theta_estimate=theta.est(dat, a,d, iter, crit.val, theta0=rep(0,ncol(a)), weight.type = "bisquare", tuning.par = B)$Theta
+
+        for(i in 1:dim){
+          b.plots[[i]] <- local({
+            i <- i
+            bisquareplot<- ggplot(mapping = aes (x = theta_estimate[,i], y = bisquare_theta_estimate[,i]))+ geom_abline(color = "red", slope = 1) +
+              geom_point()+ xlab(bquote(hat(theta)[MLE])) + ylab(bquote(hat(theta)[Bisquare] ~ " " ~ (B== .(B) ))) +
+              ggtitle(bquote("Bisquare-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE, Dimension" ~ .(i) ))
+          })
+        }
+        return(do.call(ggarrange, c(b.plots, ncol = 1, nrow = 3, common.legend = T)))
+      }else if(!is.null(H) & is.null(B)){
+        huber_theta_estimate=theta.est(dat, a,d, iter, crit.val, theta0=rep(0,ncol(a)), weight.type = "Huber", tuning.par = H)$Theta
+        for(i in 1:dim){
+          h.plots[[i]] <- local({
+            i <- i
+            huberplot<- ggplot(mapping = aes (x = theta_estimate[,i], y = huber_theta_estimate[,i]))+ geom_abline(color = "red", slope = 1) +
+              geom_point() + xlab(bquote(hat(theta)[MLE])) + ylab(bquote(hat(theta)[Huber] ~ " " ~ (H== .(H) ))) +
+              ggtitle(bquote("Huber-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE, Dimension" ~ .(i) ))
+          })
+
+        }
+        return(do.call(ggarrange, c(h.plots, ncol = 1, nrow = dim, common.legend = T)))
+      }else{ return(print("A valid tuning parameter is needed."))}
+    }else{ # if not same plot
+      theta_estimate=theta.est(dat, a,d, iter, crit.val, theta0=rep(0,ncol(a)), weight.type = "equal")
+      dim<-ncol(theta_estimate$Theta) #number of dimensions
+      n<-nrow(theta_estimate$Theta) #number of subjects
+
+      if(!is.null(H) & !is.null(B)){
+        huber_theta_estimate=theta.est(dat, a,d, iter, crit.val, theta0=rep(0,ncol(a)), weight.type = "Huber", tuning.par = H)
+        bisquare_theta_estimate=theta.est(dat, a,d, iter, crit.val, theta0=rep(0,ncol(a)), weight.type = "bisquare", tuning.par = B)
+
+        dat<-data.frame(MLE=matrix(theta_estimate$Theta),
+                        Huber=matrix(huber_theta_estimate$Theta),
+                        Bisquare=matrix(bisquare_theta_estimate$Theta),
+                        Dimension=as.factor(rep(1:dim, each=n)))
+
+        huberplot<- ggplot(data = dat, aes(x=MLE, y=Huber)) + geom_abline(color = "red", slope = 1) +
+          geom_point(aes(color=Dimension)) + xlab(bquote(hat(theta)[MLE])) +
+          ylab(bquote(hat(theta)[Huber] ~ " " ~ (H== .(H) ))) + ggtitle(bquote("Huber-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE"))
+
+        bisquareplot<- ggplot(data = dat, aes(x=MLE, y=Bisquare)) + geom_abline(color = "red", slope = 1) +
+          geom_point(aes(color=Dimension)) + xlab(bquote(hat(theta)[MLE])) +
+          ylab(bquote(hat(theta)[Bisquare] ~ " " ~ (B== .(B) ))) + ggtitle(bquote("Bisquare-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE"))
+
+        return(list(huberplot, bisquareplot))
+      }else if(is.null(H) & !is.null(B)){
+        bisquare_theta_estimate=theta.est(dat, a,d, iter, crit.val, theta0=rep(0,ncol(a)), weight.type = "bisquare", tuning.par = B)
+
+        dat<-data.frame(MLE=matrix(theta_estimate$Theta),
+                        Bisquare=matrix(bisquare_theta_estimate$Theta),
+                        Dimension=as.factor(rep(1:dim, each=n)))
+        bisquareplot<- ggplot(data = dat, aes(x=MLE, y=Bisquare)) + geom_abline(color = "red", slope = 1) +
+          geom_point(aes(color=Dimension)) + xlab(bquote(hat(theta)[MLE])) +
+          ylab(bquote(hat(theta)[Bisquare] ~ " " ~ (B== .(B) ))) + ggtitle(bquote("Bisquare-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE"))
+        return(bisquareplot)
+      }else if(!is.null(H) & is.null(B)){
+        huber_theta_estimate=theta.est(dat, a,d, iter, crit.val, theta0=rep(0,ncol(a)), weight.type = "Huber", tuning.par = H)
+
+        dat<-data.frame(MLE=matrix(theta_estimate$Theta),
+                        Huber=matrix(huber_theta_estimate$Theta),
+                        Dimension=as.factor(rep(1:dim, each=n)))
+
+        huberplot<- ggplot(data = dat, aes(x=MLE, y=Huber)) + geom_abline(color = "red", slope = 1) +
+          geom_point(aes(color=Dimension)) + xlab(bquote(hat(theta)[MLE])) +
+          ylab(bquote(hat(theta)[Huber] ~ " " ~ (H== .(H) ))) + ggtitle(bquote("Huber-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE"))
+
+        return(huberplot)
+      }else{return(print("A valid tuning parameter is needed."))}
+    }
+  }else if(type == "GRM"){
+
+    theta_estimate=theta.est.grm(dat, a,b, iter, crit.val, 0, weight.type="equal")$theta
+    if(!is.null(H)& !is.null(B)){
+      huber_theta_estimate=theta.est.grm(dat, a,b, iter, crit.val, 0, weight.type="Huber", tuning.par=H)$theta
+      bisquare_theta_estimate=theta.est.grm(dat, a,b, iter, crit.val, 0, weight.type="bisquare", tuning.par=B)$theta
+
+      h.plot<- ggplot(mapping = aes (x = theta_estimate, y = huber_theta_estimate))+ geom_abline(color = "red", slope = 1) +
+        geom_point() + xlab(bquote(hat(theta)[MLE])) + ylab(bquote(hat(theta)[Huber] ~ " " ~ (H== .(H) ))) +
+        ggtitle(bquote("Huber-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE" ))
+
+      b.plot<- ggplot(mapping = aes (x = theta_estimate, y = bisquare_theta_estimate))+ geom_abline(color = "red", slope = 1) +
+        geom_point()+ xlab(bquote(hat(theta)[MLE])) + ylab(bquote(hat(theta)[Bisquare] ~ " " ~ (B== .(B) ))) +
+        ggtitle(bquote("Bisquare-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE" ))
+
+      pnt.h<-apply(cbind(theta_estimate, huber_theta_estimate), 1, function(x) sum(x)/2)
+      pnt.b<-apply(cbind(theta_estimate, bisquare_theta_estimate), 1, function(x) sum(x)/2)
+      sum.stats.h<-cbind(data.frame(ID = 1:nrow(theta_estimate),
+                                    MLE = theta_estimate,
+                                    Huber = huber_theta_estimate,
+                                    Distance = sqrt((theta_estimate-pnt.h)^2+(huber_theta_estimate-pnt.h)^2)), t(dat))%>%arrange(desc(Distance))
+      sum.stats.b<-cbind(data.frame(ID = 1:nrow(theta_estimate),
+                                    MLE = theta_estimate,
+                                    Bisquare = bisquare_theta_estimate,
+                                    Distance = sqrt((theta_estimate-pnt.b)^2+(bisquare_theta_estimate-pnt.b)^2)), t(dat)) %>%arrange(desc(Distance))
+      if(same.plot){ #allows user to have sperate plots or see both Huber and Bisquare at same time
+        return(list("Summary Statistics (Huber)" = sum.stats.h, "Summary Statistics (Bisquare)" = sum.stats.b, do.call(ggarrange, c(list(h.plot, b.plot), ncol = 1, nrow = 2))))
+      }else{
+        return(list("Summary Statistics (Huber)" = sum.stats.h, "Summary Statistics (Bisquare)" = sum.stats.b, h.plot, b.plot))
+      }
+    }else if(!is.null(H)& is.null(B)){
+      huber_theta_estimate=theta.est.grm(dat, a,b, iter, crit.val, 0, weight.type="Huber", tuning.par=H)$theta
+
+      h.plot<- ggplot(mapping = aes (x = theta_estimate, y = huber_theta_estimate))+ geom_abline(color = "red", slope = 1) +
+        geom_point() + xlab(bquote(hat(theta)[MLE])) + ylab(bquote(hat(theta)[Huber] ~ " " ~ (H== .(H) ))) +
+        ggtitle(bquote("Huber-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE" ))
+
+      pnt.h<-apply(cbind(theta_estimate, huber_theta_estimate), 1, function(x) sum(x)/2)
+      sum.stats.h<-cbind(data.frame(ID = 1:nrow(theta_estimate),
+                                    MLE = theta_estimate,
+                                    Huber = huber_theta_estimate,
+                                    Distance = sqrt((theta_estimate-pnt.h)^2+(huber_theta_estimate-pnt.h)^2)), t(dat))%>%arrange(desc(Distance))
+
+      return(list("Summary Statistics (Huber)" = sum.stats.h,  h.plot))
+    }else if(is.null(H)& !is.null(B)){
+      bisquare_theta_estimate=theta.est.grm(dat, a,b, iter, crit.val, 0, weight.type="Huber", tuning.par=H)$theta
+
+      b.plot<- ggplot(mapping = aes (x = theta_estimate, y = bisquare_theta_estimate))+ geom_abline(color = "red", slope = 1) +
+        geom_point()+ xlab(bquote(hat(theta)[MLE])) + ylab(bquote(hat(theta)[Bisquare] ~ " " ~ (B== .(B) ))) +
+        ggtitle(bquote("Bisquare-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE" ))
+
+      pnt.b<-apply(cbind(theta_estimate, bisquare_theta_estimate), 1, function(x) sum(x)/2)
+      sum.stats.b<-cbind(data.frame(ID = 1:nrow(theta_estimate),
+                                    MLE = theta_estimate,
+                                    Bisquare = bisquare_theta_estimate,
+                                    Distance = sqrt((theta_estimate-pnt.b)^2+(bisquare_theta_estimate-pnt.b)^2)), t(dat)) %>%arrange(desc(Distance))
+      return(list("Summary Statistics (Bisquare)" = sum.stats.b, b.plot))
+
+    }else{return(print("A valid tuning parameter is needed."))}
+
+  }
+}
+
