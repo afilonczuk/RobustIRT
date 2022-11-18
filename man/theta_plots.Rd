@@ -9,7 +9,7 @@ theta_plots(
   a,
   d,
   iter = 30,
-  crit.val = 0.01,
+  cutoff = 0.01,
   H = NULL,
   B = NULL,
   same.plot.dim = F,
@@ -24,7 +24,7 @@ theta_plots(
 
 \item{iter}{Max number of iterations. Default is 100}
 
-\item{crit.val}{Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged.}
+\item{cutoff}{Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged.}
 
 \item{H}{Huber tuning parameter}
 
