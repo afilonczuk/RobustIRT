@@ -1,8 +1,11 @@
-#' Covert p-star threshold values to the probabilities of responding in each category
+#' Convert \eqn{P^*} threshold values to the probabilities of responding in each category
 #'
-#' This function turns matrix of p-star threshold values into probabilities of responding in each category
-#' @param pstar A matrix of p-star threshold values
-#' @return The probabilities of responding in each category
+#' This function calculates \eqn{P}, the probabilities of responding in each category, from the \eqn{P^*} threshold values using the graded response model. 
+#' The probability that a subject responds in or above a category \eqn{k} for item \eqn{i} is \eqn{P^*_{ik}(\theta) = \frac{1}{1+ e^{-a_i (\theta-b_{ik})}}}, 
+#  for \eqn{K} categories and \eqn{K-1} threshold parameters  ($b_{i1}, ... b_{i,K-1}$), where $b_{ik}$ separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,..K-1}) (Embretson & Reise 2000). 
+#  \eqn{a_i} is the item discrimination parameter.  The probability of endorsing exactly category \eqn{k} is \eqn{P_{ik}(\theta) = P^*_{i,k}(\theta) - P^*_{i,k+1}(\theta),} where \eqn{P^*_{i1}(\theta) \equiv 1.0} and \eqn{P^*_{iK}(\theta) \equiv 0.0.}
+#' @param pstar A matrix of \eqn{P^*} threshold values
+#' @return The probabilities \eqn{P} of responding in each category
 pstar_to_p<-function(pstar){
   #input is an array with nrows = nitems, ncol = nthresh, dim[3] = nsubjects
   if(!is.na(dim(pstar)[3])){ #if there is only one subject
@@ -27,11 +30,15 @@ pstar_to_p<-function(pstar){
 
 #' Response Probability Calculation (2PL)
 #'
-#' This function calculates the probabilities of getting items correct given person's abilities and item parameters
-#' @param thetas A vector of length p containing students’ latent traits, where p is the number of test dimensions
-#' @param a A p x n matrix containing fixed item slope parameters
-#' @param d A vector of length n containing fixed intercept parameters, for n test items
-#' @return A vector of probabilities of endorsing each of n test items
+#' This function calculates the probabilities of getting items correct given the item parameters and a person's abilities 
+#  \eqn{\boldsymbol\theta = ({\theta}_1, {\theta}_2, ... {\theta}_p)'} on \emph{p} dimensions, according to the multidimensional 2PL IRT model: 
+#  \eqn{P(X=1 | \boldsymbol{\theta}) =  \frac{1}{1+ e^{-1.7(\boldsymbol{a_i}\boldsymbol\theta+d_i)}}}. 
+#  An item \emph{i} has slope parameters \eqn{\boldsymbol{a_i}=(a_{1i}, a_{2i}, ..., a_{pi})'} and intercept parameter \eqn{d_i}.
+#' @param thetas A vector of length \emph{p} containing students’ latent traits, where \emph{p} is the number of test dimensions
+#' @param a A \eqn{n \times p} matrix containing fixed item slope parameters for \emph{p} dimensions and \emph{n} test items
+#' @param d A vector of length \emph{n} containing fixed intercept parameters, for \emph{n} test items
+#' @return P A vector of probabilities for endorsing each of \emph{n} test items
+#' @return residual A vector of residuals detecting misfit between the subject and \emph{n} test items, according to the formula \eqn{r_i = \textbf a_i\boldsymbol\theta + d_i} (see theta.est)
 probs.gen <- function(thetas, a, d){
   thetas <- matrix(thetas, nrow = dim(a)[2], byrow = T)
   r <- a%*%thetas+d
@@ -39,14 +46,18 @@ probs.gen <- function(thetas, a, d){
   return(list(residual=r, P=matrix(P, ncol=1)))
 }
 
-#' Response Probability Calculation (2PL) and response category probabilities (P)
+#' Response Probability Calculation (GRM) and response category probabilities (P)
 #'
-#' This function generates threshold probabilities (p-star) and response category probabilities (P)
-# using parameters needed for the GRM
-#' @param thetas An array of person abilities
-#' @param a A matrix of slope parameters
-#' @param b Array of intercept parameters
-#' @return list of threshold probabilities (p-star) and the corresponding response category probabilities (P)
+#' This function generates \eqn{P^*}, the threshold probability, and \eqn{P}, the probability of responding in each category for a vector of latent traits
+#  using parameters needed for the GRM
+#  The probability that a subject responds in or above a category \eqn{k} for item \eqn{i} is \eqn{P^*_{ik}(\theta) = \frac{1}{1+ e^{-a_i (\theta-b_{ik})}}}, 
+#  for \eqn{K} categories and \eqn{K-1} threshold parameters  ($b_{i1}, ... b_{i,K-1}$), where $b_{ik}$ separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,..K-1}) (Embretson & Reise 2000). 
+#  \eqn{a_i} is the item discrimination parameter.  The probability of endorsing exactly category \eqn{k} is \eqn{P_{ik}(\theta) = P^*_{i,k}(\theta) - P^*_{i,k+1}(\theta),} where \eqn{P^*_{i1}(\theta) \equiv 1.0} and \eqn{P^*_{iK}(\theta) \equiv 0.0.}
+#' @param thetas A vector of latent traits for \eqn{m} subjects
+#' @param a A vector of discrimination parameters for \eqn{n} test items
+#' @param b A matrix of category threshold parameters, with the number of rows corresponding to \eqn{n} test items and the number of columns corresponding to \eqn{K-1} thresholds between \eqn{K} categories
+#' @return pstar A \eqn{n \times (K-1) \times m} array of category threshold probabilities for \eqn{n} items, \eqn{K} categories, and \eqn{m} subjects
+#' @return P a \eqn{n \times K \times m} array of probabilities of responding in each of \eqn{K} categories for \eqn{n} items, across \eqn{m} subjects
 probs.gen.grm<-function(thetas, a, b){
   l<-length(thetas) #number of subjects
   n<-length(a) # test length
@@ -95,11 +106,12 @@ huber<-function(r, H){
   return(w)
 }
 
-#' Data generation function from probabilities of responding in each category
+#' Likert-type data generation function from probabilities of responding in each category
 #'
-#' This function generates data from probabilities of responding in each category
-#' @param H Huber tuning parameters
-#' @return The probabilities of responding in each category
+#' This function generates Likert-type data from probabilities of responding in each category
+#' @param P A \eqn{n \times K \times m} array of probabilities of responding in each of \emph{K} categories over \emph{n} items for \emph{m} subjects
+#' @return dat A \eqn{n \times m} matrix of randomly generated Likert-type data using the sample() function for \emph{m} subjects over \emph{n} items
+
 data.gen<-function(P){
   if(is.array(P)){ #if more than one subject
     dat<-matrix(nrow = nrow(P), ncol = dim(P)[3])
@@ -112,15 +124,15 @@ data.gen<-function(P){
   return(dat)
 }
 
-#' Ability Estimation Function Using Robust Estimation
+#' Ability Estimation Function Using Robust Estimation - 2PL Dichotomous Data
 #'
 #' This function return the list of ability estimations based on the given weighting function
 #' @param dat A \eqn{n \times m} matrix of dichotomously-coded data where 1 represents an endorsed response and 0 represents a non-endorsed response. \emph{n} is the test length and \emph{m} is the number of subjects.
 #' @param a A \eqn{p\times n} matrix containing fixed item slope parameters for \emph{n} items and \emph{p} dimensions
 #' @param d A vector of length \emph{n} containing fixed intercept parameters for n items
-#' @param iter Maximum number of iterations for the Newton-Rapshon method. Default is 100.
+#' @param iter Maximum number of iterations for the Newton-Raphson method. Default is 100.
 #' @param cutoff Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged. Default is 0.01.
-#' @param theta.initial A vector of length \emph{p} containing initial latent trait values for the maximum likelihood estimation. The default is 0 for each of the \emph{p} dimensions.
+#' @param init.val A vector of length \emph{p} containing initial latent trait values for the maximum likelihood estimation. The default is 0 for each of the \emph{p} dimensions.
 #' @param weight.category The weighting strategy to use: "equal", "bisquare", or "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.
 #' @param tuning.par The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting.
 #' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
@@ -135,7 +147,10 @@ data.gen<-function(P){
 #' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
 #' @references Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
-#' @return An array of estimated person abilities
+#' @return Theta A \eqn{m \times p} matrix of ability estimates for \emph{m} subjects and \emph{p} dimensions
+#' @return Convergence \eqn{m \times p} matrix containing indicators of convergence for \emph{m} subjects: a “0” indicates the value converged; a “1” indicates the maximum likelihood estimation did not converge to any value; and “Singular” indicates the Hessian matrix was singular and could not be used to continue the maximum likelihood estimation.
+#' @return theta.progression A \eqn{p \times iter \times m} array for \emph{p} dimensions, \emph{iter} number of iterations supplied to the input, and \emph{m} subjects. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value, infinite values (nonconverged), or encounters a singular matrix error. 
+#' @return residual A \eqn{n \times m} matrix with residuals corresponding to the ability estimate for \emph{m} subjects respective to the \emph{n} test items
 #' @export
 #'
 #' @examples
@@ -172,7 +187,7 @@ data.gen<-function(P){
 #' ## Estimate thetas
 #' theta.est(dat, a, d, iter = 15, theta0=matrix(rep(0,dim)), weight.type="Huber", tuning.par=1)
 
-theta.est<-function(dat, a, d, iter=30, cutoff=.01, theta0=rep(0,ncol(a)), weight.type="equal", tuning.par=NULL){
+theta.est<-function(dat, a, d, iter=30, cutoff=.01, init.val=rep(0,ncol(a)), weight.type="equal", tuning.par=NULL){
   # first to check if the turning parameter is given when the weight.type is not "equal"
   if (weight.type != "equal") {
     if (is.null(tuning.par)) {
@@ -187,10 +202,10 @@ theta.est<-function(dat, a, d, iter=30, cutoff=.01, theta0=rep(0,ncol(a)), weigh
   theta.out<-matrix(nrow = N, ncol = dim)
   convergence<-matrix(0, nrow=N, ncol = dim)
   theta.progression<-array(NA, dim = c(dim, iter, N))
-  residual<-matrix(data=NA, nrow = n, ncol = N)
+  residual<-array(data=NA, dim = c(n, N, iter))
 
   for (i in 1:N){ #looping over subjects if more than one
-    theta<-matrix(theta0, nrow = ncol(a), byrow = T)
+    theta<-matrix(init.val, nrow = ncol(a), byrow = T)
     P0<-0 #starting probability for calculating likelihood for convergence
     for(j in 1:iter){ #prespecified iterations of Newton-Raphson Algorithm
       ex<-a%*%theta+d #residual
@@ -210,7 +225,7 @@ theta.est<-function(dat, a, d, iter=30, cutoff=.01, theta0=rep(0,ncol(a)), weigh
           stop("Cannot determine the weighting function.")
         }
 
-        D1[k] <- D*sum(weighting.term*a[,k]*(dat-P)) #first derivative
+        D1[k] <- D*sum(weighting.term*a[,k]*(dat[,i]-P)) #first derivative
         for(l in 1:dim){
           Hess[k,l] <- (-(D)^2)*sum(weighting.term*a[,k]*a[,l]*(1-P)*(P)) #Hessian matrix of 2nd derivatives
         }
@@ -228,7 +243,7 @@ theta.est<-function(dat, a, d, iter=30, cutoff=.01, theta0=rep(0,ncol(a)), weigh
         break # break if noncomverging
       }
       theta<-theta-solve(Hess)%*%D1 #update theta
-      residual[,i]<-ex
+      residual[,i,j]<-ex
       log_like<-sum(log(P))-sum(log(P0)) #compare log-likelihood with log-likelihood from previous iteration for convergence criterion
       if(abs(log_like)<cutoff){
         break
@@ -250,34 +265,49 @@ theta.est<-function(dat, a, d, iter=30, cutoff=.01, theta0=rep(0,ncol(a)), weigh
   return(list(Theta = theta.out, Convergence = convergence, theta.progression = theta.progression, residual=residual))
 }
 
-#' Ability Estimation Function Using Robust Estimation
+#' Ability Estimation Function Using Robust Estimation (GRM)
 #'
-#' This function return the list of ability estimations based on the given weighting function
-#' @param dat Response data to load
-#' @param a Matrix of slope parameters
-#' @param b Array of intercept parameters
+#' This function returns ability estimations based response data, item parameters for the graded respose model, and the given weighting function
+#' @param dat A \eqn{n \times m} matrix of polytomously-scored data (e.g., Likert-type) for \emph{n} items and \emph{m} subjects.
+#' @param a Vector of slope parameters for \emph{n} items
+#' @param b A \eqn{n \times (K-1)} matrix of category threshold parameters for \emph{K} categories
 #' @param iter Max number of iterations. Default is 100
 #' @param cutoff Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged.
-#' @param theta.initial Array of initial thetas. Default is 0s
-#' @param weight.category The weighting strategy to use, "equal", "bisquare" and "Huber". Default is "equal", which is equally weighted.
-#' @param tuning.par The tuning parameter for "bisquare" or "Huber" weighting functions
-#' @details Bisquqre weighting function
+#' @param init.val Vector of initial latent trait for the maximum likelihood estimation for \emph{m} subjects. If a single value is provided, that initial value will be used for all subjects. Default is 0.
+#' @param weight.category The weighting strategy to use, "equal", "bisquare" and "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.
+#' @param tuning.par The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting in robust estimation.
+#' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
+#' Under the graded response model (GRM), the contribution of item \emph{i} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_i)} as a function of a residual \eqn{r_i} for the item:
+#' \deqn{\sum^n_{i=1} \omega(r_i) \sum^K_{k=1} u_{ik}\text{log}P_{ik} = 0 }
+#’ \eqn{u_{ik}} is an indicator function: \deqn{u_{ik} = \begin{cases} 
+#      1 & \text{if } X_i = k; \\
+#      0 & \text{otherwise}. 
+#   \end{cases} }
+#' The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_i = \frac{1}{K-1}\left[X_i - E(X_i|\hat{\theta})\right]} for the GRM. 
+#  The difference in fit is determined between the observed response \eqn{X_i} and expected score \eqn{E(X_i|\theta) = \sum_{k=1}^KkP_{ik}(\theta)}
+#' Two types of weight functions are used: Tukey's bisquare weighting function (Mosteller & Tukey, 1977)
 #' \deqn{\omega(r_i)=\begin{cases}[1-(r_i/B)^2]^2, & \text{if} |r_i|\leq B.\\0, & \text{if} |r_i|>B.\end{cases}}
-#' Huber weighting function
+#' and the Huber weighting function (Huber, 1981)
 #' \deqn{\omega(r_i)=\begin{cases}1, & \text{if} |r_i|\leq H.\\H/|r_i|, & \text{if} |r_i|>H.\end{cases}}
-#' where \eqn{r_i} measures the inconsistency of a response of item i from the subject's assumed response model. Mislevy and Bock proposed a residual for the unidimentional case, \deqn{r_i=a_i(\theta-b_i)}
-#' @return Array of estimated person abilities
+#' Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
+#' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
+#' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
+#' @references Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
+#' @return theta Ability estimates for \emph{m} subjects. NAs replace values that did not converge to any value. Estimates that converged to values less than -3.0 were replaced with -3.0, while estimates that converged to values greater than 3.0 were replaced with 3.0. 
+#' @return convergence Indicators of convergence for \emph{m} subjects: a “0” indicates the value converged, while a “1” indicates the maximum likelihood estimation did not converge to any value.
+#' @return theta.progression A matrix with rows corresponding to each subject and columns corresponding to the number of iterations supplied to the input. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value or the value is nonconverged (reaches infinite values). 
+#' @return residual A \eqn{n \times m \times iter} array containing residuals corresponding to the ability estimate for \emph{m} subjects respective to the \emph{n} test items at each iteration until convergence, nonconvergence, or singular matrix is reached. 
 #' @export
-theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, theta.initial=rep(0,ncol(a)), weight.type="equal", tuning.par=NULL){
+theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type="equal", tuning.par=NULL){
   # first to check if the turning parameter is given when the weight.type is not "normal"
   if (weight.type != "equal") {
     if (is.null(tuning.par)) {
       stop(paste("The turning parameter cannot be null when the weight.type is ", weight.type, sep = ""))
     }
   }
-  l<-dim(dat)[2] #number of subjects
-  n<-dim(dat)[1] # test length
-  nthresh<-length(b)/n #number of threshold parameters
+  l<-ncol(dat) #number of subjects
+  n<-nrow(dat) # test length
+  nthresh<-ncol(b) #number of threshold parameters
 
   dat.b<-array(dim = list(n, l, 2))
   theta.est2<- matrix(data=NA, nrow=l)
@@ -359,12 +389,17 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, theta.initial=rep(0,nco
 
 #' Plot histogram of residuals along plot of weight (dependent on TuCo) vs residuals
 #'
-#' This function plots histogram of residuals along plot of weight (dependent on TuCo) vs residuals
-#' @param r r is a vector of residuals
+#' This function plots a histogram of residuals along the graph of the weighting function (dependent on the tuning parameter) as a function of the residual
+#' @param r A vector of residuals
 #' @param H Huber tuning parameter
 #' @param B Bisquare tuning parameter
-#' @details <please add some details here>
-#' @return Histogram plot
+#' @details The goal of this plot is to visualize the proportion of residuals that are downweighted based on the tuning parameter and allow the researcher to choose a tuning parameter that suits their data well. 
+#               For a set of residuals with larger variance, a larger tuning parameter should be used. 
+#               Generally, the tail end of the weighting function should approach the tail end of the distribution of residuals. 
+#               To increase the downweighting applied in estimation, use a smaller tuning parameter. To decrease the amount of downweighting, use a greater tuning parameter. 
+#               The function will plot the histogram of residuals below (1) the Huber weight curve if \emph{H} is supplied to the function, (2) the bisquare weight curve if \emph{B} is supplied, or (3) both the Huber and bisquare weight curves if both tuning parameters are supplied. 
+#               If no tuning parameter is supplied, just the histogram of residuals is generated. 
+#' @return Histogram plot of residuals beneath a graph of the weight functions vs. the residuals
 #' @export
 choose.tuco<-function(r, H=NULL, B=NULL){
   # r is a vector of residuals
@@ -399,34 +434,68 @@ choose.tuco<-function(r, H=NULL, B=NULL){
 
 #' Plot to compare robust estimates with MLE
 #'
-#' This function plots Robust Estimates vs the MLE
-#' @param dat Response data to load
-#' @param a Matrix of slope parameters
-#' @param b Array of intercept parameters
-#' @param iter Max number of iterations. Default is 100
+#' This function plots robust estimates vs the MLE
+#' @param dat \eqn{n \times m} matrix of response data for \emph{n} items and \emph{m} subjects
+#' @param a \eqn{n \times p} matrix of slope parameters for \emph{n} items and \emph{p} dimensions (\emph{p=1} if using the GRM or unidimensional 2PL model)
+#' @param b If type = “GRM”, an \eqn{n \times (K-1)} matrix of intercept parameters
+#' @param d If type = “MIRT”, a vector of discrimination parameters for \emph{n} items
+#' @param iter Maximum number of iterations. Default is 100
 #' @param cutoff Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged.
 #' @param H Huber tuning parameter
 #' @param B Bisquare tuning parameter
-#' @param same.plot.dim If in same plot
-#' @param same.plot If allow user to have sperate plots or see both Huber and Bisquare at same time
+#' @param same.plot.dim If TRUE and type = “MIRT”, estimates across all \emph{p} dimensions will be plotted on the same graph. If FALSE (default) and type = “MIRT”, one plot per dimension will be generated.
+#' @param same.plot If TRUE (default) and both \emph{H} and \emph{B} are supplied, generates both the Huber and bisquare plots in the same image frame. If FALSE, the Huber and bisquare plots are generated on separate images.
 #' @param type MIRT or GRM
-#' @details <please add some details here>
-#' @return Histogram plot
+#' @details When the data is not disturbed, robust estimates should not differ greatly from the maximum likelihood estimate (MLE). 
+#                                       By plotting the robust estimates against the MLE, the user can identify possible aberrant trends, if the robust estimates are far from the MLE, as indicated by the distance from the \eqn{y=x} identity line. 
+#                                       Larger discrepancies between the point plotted for a subject and the identity line suggest there may be some disturbance in this subject’s data that the robust estimation may be correcting. 
+#                                       At least one tuning parameter \emph{H} or \emph{B} must be supplied to the function; if both are supplied, the function will return separate plots for both weighting systems. 
+
+#' @return ‘Summary Statistics (Huber)’ If \emph{H} is supplied, a dataframe where each row provides a subject’s ID, MLE, the Huber-weighted robust estimate, the minimum distance between the point on the plot and the identity line, and their response vector. The subjects are organized by greatest to least distance. 
+#' @return ‘Summary Statistics (Bisquare)’ If \emph{B} is supplied, a dataframe where each row provides a subject’s ID, MLE, the bisquare-weighted robust estimate, the minimum distance between the point on the plot and the identity line, and their response vector. The subjects are organized by greatest to least distance. 
+#' @return Plots If same.plot = TRUE and both \emph{H} and \emph{B} are supplied, each robust ability estimate is plotted against the MLE; graphs for each of the Huber- and bisquare-weighted estimates are generated separately but on the same image frame. The identity line \eqn{y=x} is plotted as a reference line. 
+#' @return `Huber Plot` If same.plot = FALSE or \emph{B} is not supplied, each Huber-weighted robust ability estimate is plotted against the MLE with the identity line \eqn{y=x} as reference. 
+#' @return `Bisquare Plot` If same.plot = FALSE or \emph{H} is not supplied, each bisquare-weighted robust ability estimate is plotted against the MLE with the identity line \eqn{y=x} as reference.
 #' @export
-theta_plots<-function(dat, a, d, iter=30, cutoff=0.01, H=NULL, B=NULL, same.plot.dim = F, same.plot = T, type){
+theta_plots<-function(dat, a, d=NULL, b=NULL, iter=30, cutoff=0.01, H=NULL, B=NULL, same.plot.dim = F, same.plot = T, type){
   if(type != "MIRT" & type != "GRM"){
     return(print("Please enter a valid type of model (e.g., 'MIRT' or 'GRM')."))
   }else if(type == "MIRT"){
+    if(is.null(d)){ return(print("Please enter a vector of intercept values (d)."))}
     h.plots<-b.plots<-list()
+    dim<-ncol(a)
     if(!same.plot.dim){
       theta_estimate=theta.est(dat, a,d, iter, cutoff, theta0=rep(0,ncol(a)), weight.type = "equal")$Theta
       dim<-ncol(theta_estimate) #number of dimensions
       n<-nrow(theta_estimate) #number of subjects
-
+      
       if(!is.null(H) & !is.null(B)){
         huber_theta_estimate=theta.est(dat, a,d, iter, cutoff, theta0=rep(0,ncol(a)), weight.type = "Huber", tuning.par = H)$Theta
         bisquare_theta_estimate=theta.est(dat, a,d, iter, cutoff, theta0=rep(0,ncol(a)), weight.type = "bisquare", tuning.par = B)$Theta
-
+        pnt.h<-matrix(apply(cbind(matrix(theta_estimate), matrix(huber_theta_estimate)), 1, function(x) sum(x)/2), ncol = 3)
+        pnt.b<-matrix(apply(cbind(matrix(theta_estimate), matrix(bisquare_theta_estimate)), 1, function(x) sum(x)/2), ncol = 3)
+        Distance.h = sqrt((theta_estimate-pnt.h)^2+(huber_theta_estimate-pnt.h)^2)
+        Distance.b = sqrt((theta_estimate-pnt.b)^2+(bisquare_theta_estimate-pnt.b)^2)
+        stats.h<-data.frame(Dis=apply(Distance.h, 1, function(x) mean(x, na.rm=T)), 
+                                     ID = 1:nrow(theta_estimate))
+        stats.b<-data.frame(Dis=apply(Distance.b, 1, function(x) mean(x, na.rm=T)), 
+                            ID = 1:nrow(theta_estimate))
+        h.names<-b.names<-c("Dis", "ID")
+        for(i in 1:dim){
+          stats.h<-cbind(stats.h, MLE = theta_estimate[,i],
+                Huber = huber_theta_estimate[,i],
+                Distance =Distance.h[,i])
+          stats.b<-cbind(stats.b, MLE = theta_estimate[,i],
+                Bisquare = bisquare_theta_estimate[,i],
+                Distance =Distance.b[,i])
+          h.names<-c(h.names, paste0("MLE", i), paste0("Huber", i), paste0("Distance", i))
+          b.names<-c(b.names, paste0("MLE", i), paste0("Bisquare", i), paste0("Distance", i))
+        }
+        colnames(stats.h)<-h.names
+        colnames(stats.b)<-b.names
+        sum.stats.h<-cbind(stats.h, t(dat))%>%arrange(desc(Dis))
+        sum.stats.b<-cbind(stats.b, t(dat))%>%arrange(desc(Dis))
+        
         for(i in 1:dim){
           #message(i)
           h.plots[[i]] <- local({
@@ -442,10 +511,24 @@ theta_plots<-function(dat, a, d, iter=30, cutoff=0.01, H=NULL, B=NULL, same.plot
               ggtitle(bquote("Bisquare-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE, Dimension" ~ .(i) ))
           })
         }
-        return(list(do.call(ggarrange, c(h.plots, ncol = 1, nrow = dim, common.legend = T)), do.call(ggarrange, c(b.plots, ncol = 1, nrow = 3, common.legend = T))))
+        return(list("Summary Statistics (Huber)" = sum.stats.h[,-1], "Summary Statistics (Bisquare)" = sum.stats.b[,-1], "Huber Plot" = do.call(ggarrange, c(h.plots, ncol = 1, nrow = dim, common.legend = T)), "Bisquare Plot" = do.call(ggarrange, c(b.plots, ncol = 1, nrow = dim, common.legend = T))))
       }else if(is.null(H) & !is.null(B)){
         bisquare_theta_estimate=theta.est(dat, a,d, iter, cutoff, theta0=rep(0,ncol(a)), weight.type = "bisquare", tuning.par = B)$Theta
-
+        
+        pnt.b<-matrix(apply(cbind(matrix(theta_estimate), matrix(bisquare_theta_estimate)), 1, function(x) sum(x)/2), ncol = 3)
+        Distance.b = sqrt((theta_estimate-pnt.b)^2+(bisquare_theta_estimate-pnt.b)^2)
+        stats.b<-data.frame(Dis=apply(Distance.b, 1, function(x) mean(x, na.rm=T)), 
+                            ID = 1:nrow(theta_estimate))
+        b.names<-c("Dis", "ID")
+        for(i in 1:dim){
+          stats.b<-cbind(stats.b, MLE = theta_estimate[,i],
+                         Bisquare = bisquare_theta_estimate[,i],
+                         Distance =Distance.b[,i])
+          b.names<-c(b.names, paste0("MLE", i), paste0("Bisquare", i), paste0("Distance", i))
+        }
+        colnames(stats.b)<-b.names
+        sum.stats.b<-cbind(stats.b, t(dat))%>%arrange(desc(Dis))
+        
         for(i in 1:dim){
           b.plots[[i]] <- local({
             i <- i
@@ -454,9 +537,24 @@ theta_plots<-function(dat, a, d, iter=30, cutoff=0.01, H=NULL, B=NULL, same.plot
               ggtitle(bquote("Bisquare-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE, Dimension" ~ .(i) ))
           })
         }
-        return(do.call(ggarrange, c(b.plots, ncol = 1, nrow = 3, common.legend = T)))
+        return(list("Summary Statistics" = sum.stats.b[,-1], "Bisquare Plots" =do.call(ggarrange, c(b.plots, ncol = 1, nrow = dim, common.legend = T))))
       }else if(!is.null(H) & is.null(B)){
         huber_theta_estimate=theta.est(dat, a,d, iter, cutoff, theta0=rep(0,ncol(a)), weight.type = "Huber", tuning.par = H)$Theta
+        
+        pnt.h<-matrix(apply(cbind(matrix(theta_estimate), matrix(huber_theta_estimate)), 1, function(x) sum(x)/2), ncol = 3)
+        Distance.h = sqrt((theta_estimate-pnt.h)^2+(huber_theta_estimate-pnt.h)^2)
+        stats.h<-data.frame(Dis=apply(Distance.h, 1, function(x) mean(x, na.rm=T)), 
+                            ID = 1:nrow(theta_estimate))
+        h.names<-c("Dis", "ID")
+        for(i in 1:dim){
+          stats.h<-cbind(stats.h, MLE = theta_estimate[,i],
+                         Huber = huber_theta_estimate[,i],
+                         Distance =Distance.h[,i])
+          h.names<-c(h.names, paste0("MLE", i), paste0("Huber", i), paste0("Distance", i))
+        }
+        colnames(stats.h)<-h.names
+        sum.stats.h<-cbind(stats.h, t(dat))%>%arrange(desc(Dis))
+        
         for(i in 1:dim){
           h.plots[[i]] <- local({
             i <- i
@@ -464,72 +562,125 @@ theta_plots<-function(dat, a, d, iter=30, cutoff=0.01, H=NULL, B=NULL, same.plot
               geom_point() + xlab(bquote(hat(theta)[MLE])) + ylab(bquote(hat(theta)[Huber] ~ " " ~ (H== .(H) ))) +
               ggtitle(bquote("Huber-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE, Dimension" ~ .(i) ))
           })
-
+          
         }
-        return(do.call(ggarrange, c(h.plots, ncol = 1, nrow = dim, common.legend = T)))
+        return(list("Summary Statistics (Huber)" = sum.stats.h[,-1], "Huber Plots" = do.call(ggarrange, c(h.plots, ncol = 1, nrow = dim, common.legend = T))))
       }else{ return(print("A valid tuning parameter is needed."))}
     }else{ # if not same plot
       theta_estimate=theta.est(dat, a,d, iter, cutoff, theta0=rep(0,ncol(a)), weight.type = "equal")
       dim<-ncol(theta_estimate$Theta) #number of dimensions
       n<-nrow(theta_estimate$Theta) #number of subjects
-
+      
       if(!is.null(H) & !is.null(B)){
         huber_theta_estimate=theta.est(dat, a,d, iter, cutoff, theta0=rep(0,ncol(a)), weight.type = "Huber", tuning.par = H)
         bisquare_theta_estimate=theta.est(dat, a,d, iter, cutoff, theta0=rep(0,ncol(a)), weight.type = "bisquare", tuning.par = B)
-
+        
+        pnt.h<-matrix(apply(cbind(matrix(theta_estimate), matrix(huber_theta_estimate)), 1, function(x) sum(x)/2), ncol = 3)
+        pnt.b<-matrix(apply(cbind(matrix(theta_estimate), matrix(bisquare_theta_estimate)), 1, function(x) sum(x)/2), ncol = 3)
+        Distance.h = sqrt((theta_estimate-pnt.h)^2+(huber_theta_estimate-pnt.h)^2)
+        Distance.b = sqrt((theta_estimate-pnt.b)^2+(bisquare_theta_estimate-pnt.b)^2)
+        stats.h<-data.frame(Dis=apply(Distance.h, 1, function(x) mean(x, na.rm=T)), 
+                            ID = 1:nrow(theta_estimate))
+        stats.b<-data.frame(Dis=apply(Distance.b, 1, function(x) mean(x, na.rm=T)), 
+                            ID = 1:nrow(theta_estimate))
+        h.names<-b.names<-c("Dis", "ID")
+        for(i in 1:dim){
+          stats.h<-cbind(stats.h, MLE = theta_estimate[,i],
+                         Huber = huber_theta_estimate[,i],
+                         Distance =Distance.h[,i])
+          stats.b<-cbind(stats.b, MLE = theta_estimate[,i],
+                         Bisquare = bisquare_theta_estimate[,i],
+                         Distance =Distance.b[,i])
+          h.names<-c(h.names, paste0("MLE", i), paste0("Huber", i), paste0("Distance", i))
+          b.names<-c(b.names, paste0("MLE", i), paste0("Bisquare", i), paste0("Distance", i))
+        }
+        colnames(stats.h)<-h.names
+        colnames(stats.b)<-b.names
+        sum.stats.h<-cbind(stats.h, t(dat))%>%arrange(desc(Dis))
+        sum.stats.b<-cbind(stats.b, t(dat))%>%arrange(desc(Dis))
+        
         dat<-data.frame(MLE=matrix(theta_estimate$Theta),
                         Huber=matrix(huber_theta_estimate$Theta),
                         Bisquare=matrix(bisquare_theta_estimate$Theta),
                         Dimension=as.factor(rep(1:dim, each=n)))
-
+        
         huberplot<- ggplot(data = dat, aes(x=MLE, y=Huber)) + geom_abline(color = "red", slope = 1) +
           geom_point(aes(color=Dimension)) + xlab(bquote(hat(theta)[MLE])) +
           ylab(bquote(hat(theta)[Huber] ~ " " ~ (H== .(H) ))) + ggtitle(bquote("Huber-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE"))
-
+        
         bisquareplot<- ggplot(data = dat, aes(x=MLE, y=Bisquare)) + geom_abline(color = "red", slope = 1) +
           geom_point(aes(color=Dimension)) + xlab(bquote(hat(theta)[MLE])) +
           ylab(bquote(hat(theta)[Bisquare] ~ " " ~ (B== .(B) ))) + ggtitle(bquote("Bisquare-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE"))
-
-        return(list(huberplot, bisquareplot))
+        
+        return(list("Summary Statistics (Huber)" = sum.stats.h[,-1], "Summary Statistics (Bisquare)" = sum.stats.b, "Huber Plots" = huberplot, "Bisquare Plots" = bisquareplot))
       }else if(is.null(H) & !is.null(B)){
         bisquare_theta_estimate=theta.est(dat, a,d, iter, cutoff, theta0=rep(0,ncol(a)), weight.type = "bisquare", tuning.par = B)
-
+        
+        pnt.b<-matrix(apply(cbind(matrix(theta_estimate), matrix(bisquare_theta_estimate)), 1, function(x) sum(x)/2), ncol = 3)
+        Distance.b = sqrt((theta_estimate-pnt.b)^2+(bisquare_theta_estimate-pnt.b)^2)
+        stats.b<-data.frame(Dis=apply(Distance.b, 1, function(x) mean(x, na.rm=T)), 
+                            ID = 1:nrow(theta_estimate))
+        b.names<-c("Dis", "ID")
+        for(i in 1:dim){
+          stats.b<-cbind(stats.b, MLE = theta_estimate[,i],
+                         Bisquare = bisquare_theta_estimate[,i],
+                         Distance =Distance.b[,i])
+          b.names<-c(b.names, paste0("MLE", i), paste0("Bisquare", i), paste0("Distance", i))
+        }
+        colnames(stats.b)<-b.names
+        sum.stats.b<-cbind(stats.b, t(dat))%>%arrange(desc(Dis))
+        
+        
         dat<-data.frame(MLE=matrix(theta_estimate$Theta),
                         Bisquare=matrix(bisquare_theta_estimate$Theta),
                         Dimension=as.factor(rep(1:dim, each=n)))
         bisquareplot<- ggplot(data = dat, aes(x=MLE, y=Bisquare)) + geom_abline(color = "red", slope = 1) +
           geom_point(aes(color=Dimension)) + xlab(bquote(hat(theta)[MLE])) +
           ylab(bquote(hat(theta)[Bisquare] ~ " " ~ (B== .(B) ))) + ggtitle(bquote("Bisquare-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE"))
-        return(bisquareplot)
+        return(list("Sumary Statistics (Bisquare)" = sum.stats.b[,-1], "Bisquare Plot" = bisquareplot))
       }else if(!is.null(H) & is.null(B)){
         huber_theta_estimate=theta.est(dat, a,d, iter, cutoff, theta0=rep(0,ncol(a)), weight.type = "Huber", tuning.par = H)
-
+        
+        pnt.h<-matrix(apply(cbind(matrix(theta_estimate), matrix(huber_theta_estimate)), 1, function(x) sum(x)/2), ncol = 3)
+        Distance.h = sqrt((theta_estimate-pnt.h)^2+(huber_theta_estimate-pnt.h)^2)
+        stats.h<-data.frame(Dis=apply(Distance.h, 1, function(x) mean(x, na.rm=T)), 
+                            ID = 1:nrow(theta_estimate))
+        h.names<-c("Dis", "ID")
+        for(i in 1:dim){
+          stats.h<-cbind(stats.h, MLE = theta_estimate[,i],
+                         Huber = huber_theta_estimate[,i],
+                         Distance =Distance.h[,i])
+          h.names<-c(h.names, paste0("MLE", i), paste0("Huber", i), paste0("Distance", i))
+        }
+        colnames(stats.h)<-h.names
+        sum.stats.h<-cbind(stats.h, t(dat))%>%arrange(desc(Dis))
+        
         dat<-data.frame(MLE=matrix(theta_estimate$Theta),
                         Huber=matrix(huber_theta_estimate$Theta),
                         Dimension=as.factor(rep(1:dim, each=n)))
-
+        
         huberplot<- ggplot(data = dat, aes(x=MLE, y=Huber)) + geom_abline(color = "red", slope = 1) +
           geom_point(aes(color=Dimension)) + xlab(bquote(hat(theta)[MLE])) +
           ylab(bquote(hat(theta)[Huber] ~ " " ~ (H== .(H) ))) + ggtitle(bquote("Huber-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE"))
-
-        return(huberplot)
+        
+        return(list("Summary Statistics (Huber)" = sum.stats.h[,-1], "Huber Plots" = huberplot))
       }else{return(print("A valid tuning parameter is needed."))}
     }
   }else if(type == "GRM"){
-
+    
     theta_estimate=theta.est.grm(dat, a,b, iter, cutoff, 0, weight.type="equal")$theta
     if(!is.null(H)& !is.null(B)){
       huber_theta_estimate=theta.est.grm(dat, a,b, iter, cutoff, 0, weight.type="Huber", tuning.par=H)$theta
       bisquare_theta_estimate=theta.est.grm(dat, a,b, iter, cutoff, 0, weight.type="bisquare", tuning.par=B)$theta
-
+      
       h.plot<- ggplot(mapping = aes (x = theta_estimate, y = huber_theta_estimate))+ geom_abline(color = "red", slope = 1) +
         geom_point() + xlab(bquote(hat(theta)[MLE])) + ylab(bquote(hat(theta)[Huber] ~ " " ~ (H== .(H) ))) +
         ggtitle(bquote("Huber-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE" ))
-
+      
       b.plot<- ggplot(mapping = aes (x = theta_estimate, y = bisquare_theta_estimate))+ geom_abline(color = "red", slope = 1) +
         geom_point()+ xlab(bquote(hat(theta)[MLE])) + ylab(bquote(hat(theta)[Bisquare] ~ " " ~ (B== .(B) ))) +
         ggtitle(bquote("Bisquare-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE" ))
-
+      
       pnt.h<-apply(cbind(theta_estimate, huber_theta_estimate), 1, function(x) sum(x)/2)
       pnt.b<-apply(cbind(theta_estimate, bisquare_theta_estimate), 1, function(x) sum(x)/2)
       sum.stats.h<-cbind(data.frame(ID = 1:nrow(theta_estimate),
@@ -541,40 +692,41 @@ theta_plots<-function(dat, a, d, iter=30, cutoff=0.01, H=NULL, B=NULL, same.plot
                                     Bisquare = bisquare_theta_estimate,
                                     Distance = sqrt((theta_estimate-pnt.b)^2+(bisquare_theta_estimate-pnt.b)^2)), t(dat)) %>%arrange(desc(Distance))
       if(same.plot){ #allows user to have sperate plots or see both Huber and Bisquare at same time
-        return(list("Summary Statistics (Huber)" = sum.stats.h, "Summary Statistics (Bisquare)" = sum.stats.b, do.call(ggarrange, c(list(h.plot, b.plot), ncol = 1, nrow = 2))))
+        return(list("Summary Statistics (Huber)" = sum.stats.h, "Summary Statistics (Bisquare)" = sum.stats.b, "Plots" = do.call(ggarrange, c(list(h.plot, b.plot), ncol = 1, nrow = 2))))
       }else{
-        return(list("Summary Statistics (Huber)" = sum.stats.h, "Summary Statistics (Bisquare)" = sum.stats.b, h.plot, b.plot))
+        return(list("Summary Statistics (Huber)" = sum.stats.h, "Summary Statistics (Bisquare)" = sum.stats.b, "Huber Plot" = h.plot, "Bisquare Plot" =b.plot))
       }
     }else if(!is.null(H)& is.null(B)){
       huber_theta_estimate=theta.est.grm(dat, a,b, iter, cutoff, 0, weight.type="Huber", tuning.par=H)$theta
-
+      
       h.plot<- ggplot(mapping = aes (x = theta_estimate, y = huber_theta_estimate))+ geom_abline(color = "red", slope = 1) +
         geom_point() + xlab(bquote(hat(theta)[MLE])) + ylab(bquote(hat(theta)[Huber] ~ " " ~ (H== .(H) ))) +
         ggtitle(bquote("Huber-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE" ))
-
+      
       pnt.h<-apply(cbind(theta_estimate, huber_theta_estimate), 1, function(x) sum(x)/2)
       sum.stats.h<-cbind(data.frame(ID = 1:nrow(theta_estimate),
                                     MLE = theta_estimate,
                                     Huber = huber_theta_estimate,
                                     Distance = sqrt((theta_estimate-pnt.h)^2+(huber_theta_estimate-pnt.h)^2)), t(dat))%>%arrange(desc(Distance))
-
-      return(list("Summary Statistics (Huber)" = sum.stats.h,  h.plot))
+      
+      return(list("Summary Statistics (Huber)" = sum.stats.h,  "Huber Plot" = h.plot))
     }else if(is.null(H)& !is.null(B)){
       bisquare_theta_estimate=theta.est.grm(dat, a,b, iter, cutoff, 0, weight.type="Huber", tuning.par=H)$theta
-
+      
       b.plot<- ggplot(mapping = aes (x = theta_estimate, y = bisquare_theta_estimate))+ geom_abline(color = "red", slope = 1) +
         geom_point()+ xlab(bquote(hat(theta)[MLE])) + ylab(bquote(hat(theta)[Bisquare] ~ " " ~ (B== .(B) ))) +
         ggtitle(bquote("Bisquare-Weighted Robust Estimates of " ~ theta ~ " vs. the MLE" ))
-
+      
       pnt.b<-apply(cbind(theta_estimate, bisquare_theta_estimate), 1, function(x) sum(x)/2)
       sum.stats.b<-cbind(data.frame(ID = 1:nrow(theta_estimate),
                                     MLE = theta_estimate,
                                     Bisquare = bisquare_theta_estimate,
                                     Distance = sqrt((theta_estimate-pnt.b)^2+(bisquare_theta_estimate-pnt.b)^2)), t(dat)) %>%arrange(desc(Distance))
-      return(list("Summary Statistics (Bisquare)" = sum.stats.b, b.plot))
-
+      return(list("Summary Statistics (Bisquare)" = sum.stats.b, "Bisquare Plot" = b.plot))
+      
     }else{return(print("A valid tuning parameter is needed."))}
-
+    
   }
 }
+
 
