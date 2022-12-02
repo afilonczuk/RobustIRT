@@ -205,7 +205,11 @@ theta.est<-function(dat, a, d, iter=30, cutoff=.01, init.val=rep(0,ncol(a)), wei
   residual<-array(data=NA, dim = c(n, N, iter))
 
   for (i in 1:N){ #looping over subjects if more than one
-    theta<-matrix(init.val, nrow = ncol(a), byrow = T)
+    if(length(init.val)>dim){
+      theta<-matrix(init.val[i,], nrow = ncol(a), byrow = T)
+    }else{
+      theta<-matrix(init.val, nrow = ncol(a), byrow = T)
+    }
     P0<-0 #starting probability for calculating likelihood for convergence
     for(j in 1:iter){ #prespecified iterations of Newton-Raphson Algorithm
       ex<-a%*%theta+d #residual
@@ -331,7 +335,11 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type
     }
   }
   for(i in 1:l){
-    theta<-init.val
+    if(length(init.val)>1){
+      theta<-init.val[i]
+    }else{
+      theta<-init.val
+    }
     P0<-0
     for (k in 1:iter){
       exponent_0<-a*(theta-dat.b[,i,1])
