@@ -2,20 +2,22 @@
 % Please edit documentation in R/robust.R
 \name{probs.gen.grm}
 \alias{probs.gen.grm}
-\title{Response Probability Calculation (2PL) and response category probabilities (P)}
+\title{Response Probability Calculation (GRM) and response category probabilities (P)}
 \usage{
 probs.gen.grm(thetas, a, b)
 }
 \arguments{
-\item{thetas}{An array of person abilities}
+\item{thetas}{A vector of latent traits for \eqn{m} subjects}
 
-\item{a}{A matrix of slope parameters}
+\item{a}{A vector of discrimination parameters for \eqn{n} test items}
 
-\item{b}{Array of intercept parameters}
+\item{b}{A matrix of category threshold parameters, with the number of rows corresponding to \eqn{n} test items and the number of columns corresponding to \eqn{K-1} thresholds between \eqn{K} categories}
 }
 \value{
-list of threshold probabilities (p-star) and the corresponding response category probabilities (P)
+pstar A \eqn{n \times (K-1) \times m} array of category threshold probabilities for \eqn{n} items, \eqn{K} categories, and \eqn{m} subjects
+
+P a \eqn{n \times K \times m} array of probabilities of responding in each of \eqn{K} categories for \eqn{n} items, across \eqn{m} subjects
 }
 \description{
-This function generates threshold probabilities (p-star) and response category probabilities (P)
+This function generates \eqn{P^*}, the threshold probability, and \eqn{P}, the probability of responding in each category for a vector of latent traits
 }

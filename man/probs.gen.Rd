@@ -7,15 +7,17 @@
 probs.gen(thetas, a, d)
 }
 \arguments{
-\item{thetas}{A vector of length p containing students’ latent traits, where p is the number of test dimensions}
+\item{thetas}{A vector of length \emph{p} containing students’ latent traits, where \emph{p} is the number of test dimensions}
 
-\item{a}{A p x n matrix containing fixed item slope parameters}
+\item{a}{A \eqn{n \times p} matrix containing fixed item slope parameters for \emph{p} dimensions and \emph{n} test items}
 
-\item{d}{A vector of length n containing fixed intercept parameters, for n test items}
+\item{d}{A vector of length \emph{n} containing fixed intercept parameters, for \emph{n} test items}
 }
 \value{
-A vector of probabilities of endorsing each of n test items
+P A vector of probabilities for endorsing each of \emph{n} test items
+
+residual A vector of residuals detecting misfit between the subject and \emph{n} test items, according to the formula \eqn{r_i = \textbf a_i\boldsymbol\theta + d_i} (see theta.est)
 }
 \description{
-This function calculates the probabilities of getting items correct given person's abilities and item parameters
+This function calculates the probabilities of getting items correct given the item parameters and a person's abilities
 }

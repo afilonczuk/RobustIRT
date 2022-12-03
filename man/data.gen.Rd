@@ -2,16 +2,16 @@
 % Please edit documentation in R/robust.R
 \name{data.gen}
 \alias{data.gen}
-\title{Data generation function from probabilities of responding in each category}
+\title{Likert-type data generation function from probabilities of responding in each category}
 \usage{
 data.gen(P)
 }
 \arguments{
-\item{H}{Huber tuning parameters}
+\item{P}{A \eqn{n \times K \times m} array of probabilities of responding in each of \emph{K} categories over \emph{n} items for \emph{m} subjects}
 }
 \value{
-The probabilities of responding in each category
+dat A \eqn{n \times m} matrix of randomly generated Likert-type data using the sample() function for \emph{m} subjects over \emph{n} items
 }
 \description{
-This function generates data from probabilities of responding in each category
+This function generates Likert-type data from probabilities of responding in each category
 }

@@ -7,7 +7,8 @@
 theta_plots(
   dat,
   a,
-  d,
+  d = NULL,
+  b = NULL,
   iter = 30,
   cutoff = 0.01,
   H = NULL,
@@ -18,11 +19,15 @@ theta_plots(
 )
 }
 \arguments{
-\item{dat}{Response data to load}
+\item{dat}{\eqn{n \times m} matrix of response data for \emph{n} items and \emph{m} subjects}
 
-\item{a}{Matrix of slope parameters}
+\item{a}{\eqn{n \times p} matrix of slope parameters for \emph{n} items and \emph{p} dimensions (\emph{p=1} if using the GRM or unidimensional 2PL model)}
 
-\item{iter}{Max number of iterations. Default is 100}
+\item{d}{If type = “MIRT”, a vector of discrimination parameters for \emph{n} items}
+
+\item{b}{If type = “GRM”, an \eqn{n \times (K-1)} matrix of intercept parameters}
+
+\item{iter}{Maximum number of iterations. Default is 100}
 
 \item{cutoff}{Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged.}
 
@@ -30,20 +35,26 @@ theta_plots(
 
 \item{B}{Bisquare tuning parameter}
 
-\item{same.plot.dim}{If in same plot}
+\item{same.plot.dim}{If TRUE and type = “MIRT”, estimates across all \emph{p} dimensions will be plotted on the same graph. If FALSE (default) and type = “MIRT”, one plot per dimension will be generated.}
 
-\item{same.plot}{If allow user to have sperate plots or see both Huber and Bisquare at same time}
+\item{same.plot}{If TRUE (default) and both \emph{H} and \emph{B} are supplied, generates both the Huber and bisquare plots in the same image frame. If FALSE, the Huber and bisquare plots are generated on separate images.}
 
 \item{type}{MIRT or GRM}
-
-\item{b}{Array of intercept parameters}
 }
 \value{
-Histogram plot
+‘Summary Statistics (Huber)’ If \emph{H} is supplied, a dataframe where each row provides a subject’s ID, MLE, the Huber-weighted robust estimate, the minimum distance between the point on the plot and the identity line, and their response vector. The subjects are organized by greatest to least distance.
+
+‘Summary Statistics (Bisquare)’ If \emph{B} is supplied, a dataframe where each row provides a subject’s ID, MLE, the bisquare-weighted robust estimate, the minimum distance between the point on the plot and the identity line, and their response vector. The subjects are organized by greatest to least distance.
+
+Plots If same.plot = TRUE and both \emph{H} and \emph{B} are supplied, each robust ability estimate is plotted against the MLE; graphs for each of the Huber- and bisquare-weighted estimates are generated separately but on the same image frame. The identity line \eqn{y=x} is plotted as a reference line.
+
+`Huber Plot` If same.plot = FALSE or \emph{B} is not supplied, each Huber-weighted robust ability estimate is plotted against the MLE with the identity line \eqn{y=x} as reference.
+
+`Bisquare Plot` If same.plot = FALSE or \emph{H} is not supplied, each bisquare-weighted robust ability estimate is plotted against the MLE with the identity line \eqn{y=x} as reference.
 }
 \description{
-This function plots Robust Estimates vs the MLE
+This function plots robust estimates vs the MLE
 }
 \details{
-<please add some details here>
+When the data is not disturbed, robust estimates should not differ greatly from the maximum likelihood estimate (MLE).
 }

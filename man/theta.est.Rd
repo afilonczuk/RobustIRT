@@ -2,7 +2,7 @@
 % Please edit documentation in R/robust.R
 \name{theta.est}
 \alias{theta.est}
-\title{Ability Estimation Function Using Robust Estimation}
+\title{Ability Estimation Function Using Robust Estimation - 2PL Dichotomous Data}
 \usage{
 theta.est(
   dat,
@@ -10,7 +10,7 @@ theta.est(
   d,
   iter = 30,
   cutoff = 0.01,
-  theta0 = rep(0, ncol(a)),
+  init.val = rep(0, ncol(a)),
   weight.type = "equal",
   tuning.par = NULL
 )
@@ -22,18 +22,24 @@ theta.est(
 
 \item{d}{A vector of length \emph{n} containing fixed intercept parameters for n items}
 
-\item{iter}{Maximum number of iterations for the Newton-Rapshon method. Default is 100.}
+\item{iter}{Maximum number of iterations for the Newton-Raphson method. Default is 100.}
 
 \item{cutoff}{Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged. Default is 0.01.}
 
-\item{tuning.par}{The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting.}
+\item{init.val}{A vector of length \emph{p} containing initial latent trait values for the maximum likelihood estimation. The default is 0 for each of the \emph{p} dimensions.}
 
-\item{theta.initial}{A vector of length \emph{p} containing initial latent trait values for the maximum likelihood estimation. The default is 0 for each of the \emph{p} dimensions.}
+\item{tuning.par}{The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting.}
 
 \item{weight.category}{The weighting strategy to use: "equal", "bisquare", or "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.}
 }
 \value{
-An array of estimated person abilities
+Theta A \eqn{m \times p} matrix of ability estimates for \emph{m} subjects and \emph{p} dimensions
+
+Convergence \eqn{m \times p} matrix containing indicators of convergence for \emph{m} subjects: a “0” indicates the value converged; a “1” indicates the maximum likelihood estimation did not converge to any value; and “Singular” indicates the Hessian matrix was singular and could not be used to continue the maximum likelihood estimation.
+
+theta.progression A \eqn{p \times iter \times m} array for \emph{p} dimensions, \emph{iter} number of iterations supplied to the input, and \emph{m} subjects. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value, infinite values (nonconverged), or encounters a singular matrix error.
+
+residual A \eqn{n \times m} matrix with residuals corresponding to the ability estimate for \emph{m} subjects respective to the \emph{n} test items
 }
 \description{
 This function return the list of ability estimations based on the given weighting function

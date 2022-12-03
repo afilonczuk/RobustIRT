@@ -2,16 +2,17 @@
 % Please edit documentation in R/robust.R
 \name{pstar_to_p}
 \alias{pstar_to_p}
-\title{Covert p-star threshold values to the probabilities of responding in each category}
+\title{Convert \eqn{P^*} threshold values to the probabilities of responding in each category}
 \usage{
 pstar_to_p(pstar)
 }
 \arguments{
-\item{pstar}{A matrix of p-star threshold values}
+\item{pstar}{A matrix of \eqn{P^*} threshold values}
 }
 \value{
-The probabilities of responding in each category
+The probabilities \eqn{P} of responding in each category
 }
 \description{
-This function turns matrix of p-star threshold values into probabilities of responding in each category
+This function calculates \eqn{P}, the probabilities of responding in each category, from the \eqn{P^*} threshold values using the graded response model. 
+The probability that a subject responds in or above a category \eqn{k} for item \eqn{i} is \eqn{P^*_{ik}(\theta) = \frac{1}{1+ e^{-a_i (\theta-b_{ik})}}},
 }

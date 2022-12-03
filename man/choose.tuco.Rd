@@ -7,18 +7,18 @@
 choose.tuco(r, H = NULL, B = NULL)
 }
 \arguments{
-\item{r}{r is a vector of residuals}
+\item{r}{A vector of residuals}
 
 \item{H}{Huber tuning parameter}
 
 \item{B}{Bisquare tuning parameter}
 }
 \value{
-Histogram plot
+Histogram plot of residuals beneath a graph of the weight functions vs. the residuals
 }
 \description{
-This function plots histogram of residuals along plot of weight (dependent on TuCo) vs residuals
+This function plots a histogram of residuals along the graph of the weighting function (dependent on the tuning parameter) as a function of the residual
 }
 \details{
-<please add some details here>
+The goal of this plot is to visualize the proportion of residuals that are downweighted based on the tuning parameter and allow the researcher to choose a tuning parameter that suits their data well.
 }
