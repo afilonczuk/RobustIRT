@@ -13,6 +13,6 @@ pstar_to_p(pstar)
 The probabilities \eqn{P} of responding in each category
 }
 \description{
-This function calculates \eqn{P}, the probabilities of responding in each category, from the \eqn{P^*} threshold values using the graded response model. 
+This function calculates \eqn{P}, the probabilities of responding in each category, from the \eqn{P^*} threshold values using the graded response model.
 The probability that a subject responds in or above a category \eqn{k} for item \eqn{i} is \eqn{P^*_{ik}(\theta) = \frac{1}{1+ e^{-a_i (\theta-b_{ik})}}},
 }

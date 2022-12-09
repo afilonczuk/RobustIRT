@@ -2,7 +2,7 @@
 % Please edit documentation in R/robust.R
 \name{theta.est}
 \alias{theta.est}
-\title{Ability Estimation Function Using Robust Estimation - 2PL Dichotomous Data}
+\title{Ability Estimation Function Using Robust Estimation - Dichotomous Data}
 \usage{
 theta.est(
   dat,
@@ -18,9 +18,9 @@ theta.est(
 \arguments{
 \item{dat}{A \eqn{n \times m} matrix of dichotomously-coded data where 1 represents an endorsed response and 0 represents a non-endorsed response. \emph{n} is the test length and \emph{m} is the number of subjects.}
 
-\item{a}{A \eqn{p\times n} matrix containing fixed item slope parameters for \emph{n} items and \emph{p} dimensions}
+\item{a}{A \eqn{p \times n} matrix containing fixed item slope parameters for \emph{n} items and \emph{p} dimensions}
 
-\item{d}{A vector of length \emph{n} containing fixed intercept parameters for n items}
+\item{d}{A vector of length \emph{n} containing fixed intercept parameters for n items. If the model is unidimensional, this vector should contain difficulty parameters corresponding to \emph{b} in the unidimensional 2PL model.}
 
 \item{iter}{Maximum number of iterations for the Newton-Raphson method. Default is 100.}
 
@@ -46,6 +46,8 @@ This function return the list of ability estimations based on the given weightin
 }
 \details{
 The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
+Using the multidimensional IRT model for dichotomous data, the probability of a correct response (e.g., "1") on item \emph{i} is given by the formula \eqn{P(X=1 | \boldsymbol{\theta}) =  \frac{1}{1+ e^{-1.7(\boldsymbol{a_i}\boldsymbol\theta+d_i)}},} where \eqn{\boldsymbol{a}} is a \eqn{p \times n} matrix of item slope parameters for \emph{n} items and \emph{p} dimensions. Note that \emph{d} here is considered the intercept parameter and itself is not the item difficulty as is \emph{b} in the 2PL model for unidimensional dichotomous data.
+Unidimensional robust estimations can also be calculated from this model when input parameters have \emph{p}=1 dimensions. The 2PL probability model for unidimensional data is \eqn{P(X=1 | \theta) = \frac{1}{1+ e^{-1.7a_{i}(\theta-b_{i})}}} where \emph{a} is the same as the multidimensional case where \emph{p=1}.
 The contribution of item \emph{i} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_i)} as a function of a residual \eqn{r_i} for the item \emph{i}:
 \deqn{\sum_i^n \omega(r_i) \frac{\partial}{\partial\boldsymbol\theta} \ln L(\boldsymbol\theta;x_i) = 0 }
 The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_i = \textbf a_i\boldsymbol\theta + d_i } in the multidimensional case.

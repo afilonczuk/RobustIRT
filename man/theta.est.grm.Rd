@@ -46,14 +46,55 @@ This function returns ability estimations based response data, item parameters f
 }
 \details{
 The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
-Under the graded response model (GRM), the contribution of item \emph{i} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_i)} as a function of a residual \eqn{r_i} for the item:
+Under the graded response model (GRM), the probability that a subject responds in or above a category $k$ for item $i$ is \eqn{P^*_{ik}(\theta) = \frac{1}{1+ e^{-a_i (\theta-b_{ik})}}}  (Embretson, 2000). \eqn{a_i} is the item discrimination parameter. There are \emph{K} categories and \eqn{K-1} threshold parameters (\eqn{b_{i1}, ... b_{i,K-1}}), where \eqn{b_{ik}} separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,..K-1}).
+The probability of endorsing exactly category \eqn{k} is therefore: \eqn{P_{ik}(\theta) = P^*_{i,k}(\theta) - P^*_{i,k+1}(\theta),} where \eqn{P^*_{i1}(\theta) \equiv 1.0} and \eqn{P^*_{iK}(\theta) \equiv 0.0.}
+The contribution of item \emph{i} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_i)} as a function of a residual \eqn{r_i} for the item:
 \deqn{\sum^n_{i=1} \omega(r_i) \sum^K_{k=1} u_{ik}\text{log}P_{ik} = 0 }
-The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_i = \frac{1}{K-1}\left[X_i - E(X_i|\hat{\theta})\right]} for the GRM. 
+The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_i = \frac{1}{K-1}\left[X_i - E(X_i|\hat{\theta})\right]} for the GRM.
 Two types of weight functions are used: Tukey's bisquare weighting function (Mosteller & Tukey, 1977)
 \deqn{\omega(r_i)=\begin{cases}[1-(r_i/B)^2]^2, & \text{if} |r_i|\leq B.\\0, & \text{if} |r_i|>B.\end{cases}}
 and the Huber weighting function (Huber, 1981)
 \deqn{\omega(r_i)=\begin{cases}1, & \text{if} |r_i|\leq H.\\H/|r_i|, & \text{if} |r_i|>H.\end{cases}}
 Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
+}
+\examples{
+## Test length
+n <- 30
+
+## Number of iterations of newton's method
+iter <- 15
+
+## Number of thresholds
+nthresh <- 4
+
+## Generate real thetas
+thetas <- seq(-2, 2, by=.1)
+
+## Generate item slope
+a <- runif(n, .90, 2.15)
+
+## Generate category threshold parameters
+b <- matrix(runif(n*nthresh, -2.5,2.5), nrow = n, ncol =nthresh)
+b <- t(apply(b, 1, sort))
+
+## Generate probabilities
+probs <- probs.gen.grm(thetas, a, b)
+
+## Generate input data from probabilities
+abdat <- data.gen(probs$P)
+
+## Set random guessing for latter 40\% of the exam
+chng.pt <- .6
+
+abdat[(chng.pt*n+1):n, ] <- sample(c(1:(nthresh+1)), length(thetas)*(n-chng.pt*n), replace = T)
+
+## Plot the GRM
+out<-theta_plots(abdat, a, b=b, iter=30, cutoff=0.01, H=.1, B=1, same.plot = F, type="GRM")
+## Check bisquare plot
+out$`Bisquare Plot`
+## Check Huber summary
+out$`Summary Statistics (Huber)`
+
 }
 \references{
 Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
