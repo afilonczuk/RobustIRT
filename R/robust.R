@@ -456,7 +456,7 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type
 #' @return Histogram plot of residuals beneath a graph of the weight functions vs. the residuals
 #' @export
 #' @examples
-#' #' ########## Choose.tuco example - Unidimensional IRT ######
+#' ########## Choose.tuco example - Unidimensional IRT ######
 #' n=40
 #' thetas<-matrix(seq(0,2, by=.05), ncol=1)#generate real thetas
 #' a<-matrix(runif(n, .5, 1.5), ncol=1) #set item slope

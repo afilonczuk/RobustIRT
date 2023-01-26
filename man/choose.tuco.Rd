@@ -23,7 +23,7 @@ This function plots a histogram of residuals along the graph of the weighting fu
 The goal of this plot is to visualize the proportion of residuals that are downweighted based on the tuning parameter and allow the researcher to choose a tuning parameter that suits their data well.
 }
 \examples{
-#' ########## Choose.tuco example - Unidimensional IRT ######
+########## Choose.tuco example - Unidimensional IRT ######
 n=40
 thetas<-matrix(seq(0,2, by=.05), ncol=1)#generate real thetas
 a<-matrix(runif(n, .5, 1.5), ncol=1) #set item slope
