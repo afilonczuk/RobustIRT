@@ -307,6 +307,7 @@ theta.est<-function(dat, a, d, iter=30, cutoff=.01, init.val=rep(0,ncol(a)), wei
 #' @references Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
 #' @return theta Ability estimates for \emph{m} subjects. NAs replace values that did not converge to any value. Estimates that converged to values less than -3.0 were replaced with -3.0, while estimates that converged to values greater than 3.0 were replaced with 3.0.
 #' @return convergence Indicators of convergence for \emph{m} subjects: a “0” indicates the value converged, while a “1” indicates the maximum likelihood estimation did not converge to any value.
+#' @return standard.error Standard errors of the theta estimates for \emph{m} subjects, given by the square root of the reciprocal of the Fisher information. NAs replace nonconverging values. 
 #' @return theta.progression A matrix with rows corresponding to each subject and columns corresponding to the number of iterations supplied to the input. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value or the value is nonconverged (reaches infinite values).
 #' @return residual A \eqn{n \times m \times iter} array containing residuals corresponding to the ability estimate for \emph{m} subjects respective to the \emph{n} test items at each iteration until convergence, nonconvergence, or singular matrix is reached.
 #' @export
@@ -360,7 +361,7 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type
   nthresh<-ncol(b) #number of threshold parameters
 
   dat.b<-array(dim = list(n, l, 2))
-  theta.est2<- matrix(data=NA, nrow=l)
+  theta.est2<- standard.error<- matrix(data=NA, nrow=l)
   convergence<-matrix(0, nrow=l)
   theta.progression<-matrix(NA, nrow = l, ncol = iter)
   residual<-matrix(data=NA, nrow = n, ncol = l)
@@ -428,17 +429,32 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type
       }
       P0<-P
     }
+    theta.est2[i]<-theta
+    pstar<-1/(1+exp(-1.7*(a*(theta-b))))
+    probs<-pstar_to_p(pstar)
+    test.info<-sum(a^2*probs*(1-probs))
+    standard.error[i]<-ifelse(is.na(1/sqrt(test.info)), NA, 1/sqrt(test.info))
+    
     if(k==iter){#if theta never converged to within tolerance
-      theta.est2[i]<-theta<-NA
+      theta.est2[i]<-standard.error[i]<-NA
       convergence[i,1]<-1
     }else if(!is.na(theta) & theta< -3){ #replace thetas that converged outside [-3, 3]
       theta<--3
+      pstar<-1/(1+exp(-1.7*(a*(theta-b))))
+      probs<-pstar_to_p(pstar)
+      test.info<-sum(a^2*probs*(1-probs))
+      standard.error[i]<-ifelse(is.na(1/sqrt(test.info)), NA, 1/sqrt(test.info))
+      theta.est2[i]<-theta
     }else if(!is.na(theta) & theta>3){
       theta<-3
+      pstar<-1/(1+exp(-1.7*(a*(theta-b))))
+      probs<-pstar_to_p(pstar)
+      test.info<-sum(a^2*probs*(1-probs))
+      standard.error[i]<-ifelse(is.na(1/sqrt(test.info)), NA, 1/sqrt(test.info))
+      theta.est2[i]<-theta
     }
-    theta.est2[i]<-theta
   }
-  return(list(theta = theta.est2, convergence=convergence, theta.progression = theta.progression, residual=residual))
+  return(list(theta = theta.est2, convergence=convergence, standard.error = standard.error, theta.progression = theta.progression, residual=residual))
 }
 
 #' Plot histogram of residuals along plot of weight (dependent on TuCo) vs residuals
@@ -501,7 +517,7 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type
 #' mle<-theta.est.grm(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type="equal")
 #' choose.tuco(matrix(mle$residual), H=.1, B=.8)
 #'
-#' ######## theta_plots example - MIRT ##########
+#' ######## choose.tuco example - MIRT ##########
 #' data(SAT12)
 #' SAT12[SAT12 == 8] <- NA #set 8 as a missing value
 #'
