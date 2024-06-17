@@ -156,19 +156,19 @@ data.gen<-function(P){
 #' @export
 #'
 #' @examples
-#' #test length
+#' # Test length
 #' n <- 30
 #'
-#' ## number of iterations of newton's method
+#' ## Number of iterations of Newton's method
 #' iter <- 15
 #'
-#' ## number of dim
+#' ## Number of dimensions
 #' dim <- 3
 #'
-#' ## correlation between one person's thetas
+#' ## Correlation between one person's thetas
 #' cor <- .6
 #'
-#' ## Covariance Matrix for generating thetas
+#' ## Covariance matrix for generating thetas
 #' sigma <- matrix(cor, ncol = dim, nrow = dim)
 #' diag(sigma) <- 1
 #' s <- rep(1, dim)
@@ -181,9 +181,9 @@ data.gen<-function(P){
 #' a <- matrix(runif(n*dim, .5, 1.5), nrow = n, ncol = dim)
 #' ## Generate intercept parameters
 #' d <- matrix(rnorm(n), ncol = 1)
-#' ## Generate probabilities
+#' ## Calculate probabilities
 #' probs <- probs.gen(thetas, a, d)
-#' ## Generate input data from probabilities
+#' ## Generate data from probabilities
 #' dat <- apply(probs$P, c(1,2), function(x) rbinom(1,1,x))
 #'
 #' ## Estimate thetas
@@ -312,43 +312,55 @@ theta.est<-function(dat, a, d, iter=30, cutoff=.01, init.val=rep(0,ncol(a)), wei
 #' @return residual A \eqn{n \times m \times iter} array containing residuals corresponding to the ability estimate for \emph{m} subjects respective to the \emph{n} test items at each iteration until convergence, nonconvergence, or singular matrix is reached.
 #' @export
 #' @examples
-#' ## Test length
-#' n <- 30
-#'
-#' ## Number of iterations of newton's method
+#' # Test Length
+#' n<-30
+#' 
+#' # Number of thresholds (5-point Likert scale)
+#' nthresh<-4
+#' 
+#' # Number of iterations of Newton's method
 #' iter <- 15
+#' 
+#' # Set critical value for convergence criteria
+#' crit.val<-0.01
+#' 
+#' # Set real thetas - 5 subjects
+#' thetas<-c(-2,-1,0,1,2)
+#' 
+#' # Set item slope
+#' a<-runif(n, .90, 2.15)
+#' 
+#' # Set threshold parameters
+#' b<-t(apply(matrix(runif(n*4, -2.5,2.5), nrow = n, ncol =4), 1, sort))
+#' 
+#' # Calculate Probabilities
+#' probs<-probs.gen.grm(thetas, a, b)
+#' 
+#' # Generate Likert data
+#' dat<-data.gen(probs$P)
+#' 
+#' # Make the data aberrant by reverse coding 20% items
+#' ab.prop<-0.2
+#' index<-sample(c(1:n), ab.prop*n)
+#' ab.dat<-dat
+#' ab.dat[index, ]<-apply(matrix(dat[index,]), c(1,2), function(x) return(nthresh+2-x))
 #'
-#' ## Number of thresholds
-#' nthresh <- 4
-#'
-#' ## Generate real thetas
-#' thetas <- seq(-2, 2, by=.1)
-#'
-#' ## Generate item slope
-#' a <- runif(n, .90, 2.15)
-#'
-#' ## Generate category threshold parameters
-#' b <- matrix(runif(n*nthresh, -2.5,2.5), nrow = n, ncol =nthresh)
-#' b <- t(apply(b, 1, sort))
-#'
-#' ## Generate probabilities
-#' probs <- probs.gen.grm(thetas, a, b)
-#'
-#' ## Generate input data from probabilities
-#' abdat <- data.gen(probs$P)
-#'
-#' ## Set random guessing for latter 40% of the exam
-#' chng.pt <- .6
-#'
-#' abdat[(chng.pt*n+1):n, ] <- sample(c(1:(nthresh+1)), length(thetas)*(n-chng.pt*n), replace = T)
-#'
-#' ## Plot the GRM
-#' out<-theta_plots(abdat, a, b=b, iter=30, cutoff=0.01, H=.1, B=1, same.plot = F, type="GRM")
-#' ## Check bisquare plot
-#' out$`Bisquare Plot`
-#' ## Check Huber summary
-#' out$`Summary Statistics (Huber)`
-#'
+#' 
+#' # Calculate MLE (Non-robust)
+#' mle<-theta.est.grm(ab.dat, a, b, iter, crit.val, init.val=0, weight.type="equal")
+#' 
+#' # Use MLE as starting value, or 0 if NA
+#' start.val<-apply(mle$theta, c(1,2), function(x) ifelse(is.na(x), 0, x))
+#' 
+#' # Calculate bisquare- and Huber-weighted robust estimates
+#' b.est<- theta.est.grm(ab.dat, a, b, iter, crit.val, init.val=start.val, weight.type="bisquare", tuning.par=4)
+#' h.est<-theta.est.grm(ab.dat, a, b, iter, crit.val, init.val=start.val, weight.type="Huber", tuning.par=1)
+#' 
+#' # Compare robust ability estimates with MLE
+#' b.est$theta
+#' h.est$theta
+#' mle$theta
+#' 
 theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type="equal", tuning.par=NULL){
   # first to check if the turning parameter is given when the weight.type is not "normal"
   if (weight.type != "equal") {
@@ -472,48 +484,45 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type
 #' @return Histogram plot of residuals beneath a graph of the weight functions vs. the residuals
 #' @export
 #' @examples
-#' ########## Choose.tuco example - Unidimensional IRT ######
+#' ########## choose.tuco example - Unidimensional IRT ######
 #' n=40
-#' thetas<-matrix(seq(0,2, by=.05), ncol=1)#generate real thetas
-#' a<-matrix(runif(n, .5, 1.5), ncol=1) #set item slope
+#' # Generate real thetas
+#' thetas<-matrix(seq(0,2, by=.05), ncol=1)
+#' # Set item slope and intercept
+#' a<-matrix(runif(n, .5, 1.5), ncol=1) 
 #' d<-rnorm(n)
-
-#' #Generate probabilities of correct response as if working at a suboptimal level of -1
-#' theta.drop<-.5
+#'
+#' # Introduce response disturbances: working at a suboptimal level (theta minus 1 standard deviation), for last 40% of items
+#' theta.drop<-1
 #' chng.pt<-0.6
 #' probs<-rbind(apply(thetas, 1, function(x) probs.gen(x, matrix(a[1:(chng.pt*n)], ncol=1), d[1:(chng.pt*n)])$P), apply(thetas-theta.drop, 1, function(x) probs.gen(x, matrix(a[(chng.pt*n+1):n,], ncol=1), d[(chng.pt*n+1):n])$P))
 #' dat<-apply(probs, c(1, 2), function(x) rbinom(1, 1, x))
+#' 
+#' Estimate thetas
 #' example<-theta.est(dat, a, d, iter=30, cutoff=.01, init.val=rep(0,ncol(a)), weight.type="equal", tuning.par=NULL)
-#' theta_plots(dat, a, d=d, iter=30, cutoff=0.01, H=1, B=4, type='MIRT')
 #' choose.tuco(r=matrix(na.omit(example$residual), ncol=1), B=4)
 #'
-#' ########## Choose.tuco example - MIRT#######
-#' library(mirt)
-#' data(SAT12)
-#' SAT12[SAT12 == 8] <- NA #set 8 as a missing value
-#'
-#' #correct answer key
-#' key <- c(1,4,5,2,3,1,2,1,3,1,2,4,2,1,5,3,4,4,1,4,3,3,4,1,3,5,1,3,1,5,4,5)
-#' scoredSAT12 <- key2binary(SAT12, key)
-#' specific <- c(2, 3, 2, 3, 3, 2, 1, 2, 1, 1, 1, 3, 1, 3, 1, 2, 1, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 3, 2, 3, 1,2) #which factor each item loads on
-#' b_mod1 <- mirt(scoredSAT12, specific)
-#' ipars<-matrix(unlist(coef(b_mod1))[1:(32*6)], nrow = length(key), byrow=T) #item parameters
-#' a <- ipars[,1:3]
-#' d<- ipars[,4]
-#'
-#' ########### Choose.tuco example - GRM ######
+#' ########### choose.tuco example - GRM ######
 #' n=40
 #' nthresh<-4
-#' thetas<-seq(-2,2.1, by=.1)#generate real thetas
+#' # Generate real thetas
+#' thetas<-seq(-2,2.1, by=.1)
 #'
-#' a<-runif(n, .90, 2.15) #set item slope
+#' # Set item slope
+#' a<-runif(n, .90, 2.15) 
+#' # Set category threshold parameters
 #' b<- matrix(runif(n*nthresh, -2.5,2.5), nrow = n, ncol =nthresh)
-#' b<-t(apply(b, 1, sort)) #category threshold parameters
+#' b<-t(apply(b, 1, sort)) 
+#' 
+#' # Calculate response probabilities and generate data
 #' probs<-probs.gen.grm(thetas, a, b)
 #' dat<-data.gen(probs$P)
+#' 
+#' Introduce response disturbance: random guessing for latter 40% of the exam
 #' abdat<-dat
-#' chng.pt<-.6 #random guessing for latter 30% of the exam
+#' chng.pt<-.6 
 #' abdat[(chng.pt*n+1):n, ]<-sample(c(1:(nthresh+1)), length(thetas)*(n-chng.pt*n), replace = T)
+#' Calculate ability estimates and residuals
 #' mle<-theta.est.grm(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type="equal")
 #' choose.tuco(matrix(mle$residual), H=.1, B=.8)
 #'
@@ -521,21 +530,21 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type
 #' data(SAT12)
 #' SAT12[SAT12 == 8] <- NA #set 8 as a missing value
 #'
-#' #correct answer key
+#' # Correct answer key
 #' key <- c(1,4,5,2,3,1,2,1,3,1,2,4,2,1,5,3,4,4,1,4,3,3,4,1,3,5,1,3,1,5,4,5)
 #' scoredSAT12 <- key2binary(SAT12, key)
 #' specific <- c(2, 3, 2, 3, 3, 2, 1, 2, 1, 1, 1, 3, 1, 3, 1, 2, 1, 1, 3, 3, 1, 1, 3, 1, 3, 3, 1, 3, 2, 3, 1,2) #which factor each item loads on
 #' b_mod1 <- mirt(scoredSAT12, specific)
 #' ipars<-matrix(unlist(coef(b_mod1))[1:(32*6)], nrow = length(key), byrow=T) #item parameters
 #'
-#' ### Set Parameters
+#' ## Set Parameters
 #' a <- ipars[,1:3]
 #' d<- ipars[,4]
-#' dat<-scoredSAT12[!is.na(rowSums(scoredSAT12)),] # removing vectors with missing data
-#' colnames(dat)<-NULL
-#' dat<-scoredSAT12[!is.na(rowSums(scoredSAT12)),] # removing vectors with missing data
+#' # Remove vectors with missing data
+#' dat<-scoredSAT12[!is.na(rowSums(scoredSAT12)),] 
 #' colnames(dat)<-NULL
 #'
+#' # Calculate theta estimates and residuals
 #' out<-theta.est(t(dat), a, d, iter=30, cutoff=.01, weight.type="equal")
 #' choose.tuco(matrix(out$residual[,,2]), H=1, B=4)
 
@@ -595,6 +604,42 @@ choose.tuco<-function(r, H=NULL, B=NULL){
 #' @return `Huber Plot` If same.plot = FALSE or \emph{B} is not supplied, each Huber-weighted robust ability estimate is plotted against the MLE with the identity line \eqn{y=x} as reference.
 #' @return `Bisquare Plot` If same.plot = FALSE or \emph{H} is not supplied, each bisquare-weighted robust ability estimate is plotted against the MLE with the identity line \eqn{y=x} as reference.
 #' @export
+#' @example
+#' ## Test length
+#' n <- 30
+#'
+#' ## Number of iterations of newton's method
+#' iter <- 15
+#'
+#' ## Number of thresholds
+#' nthresh <- 4
+#'
+#' ## Generate real thetas
+#' thetas <- seq(-2, 2, by=.1)
+#'
+#' ## Generate item slope
+#' a <- runif(n, .90, 2.15)
+#'
+#' ## Generate category threshold parameters
+#' b <- matrix(runif(n*nthresh, -2.5,2.5), nrow = n, ncol =nthresh)
+#' b <- t(apply(b, 1, sort))
+#'
+#' ## Generate probabilities
+#' probs <- probs.gen.grm(thetas, a, b)
+#'
+#' ## Generate input data from probabilities
+#' abdat <- data.gen(probs$P)
+#'
+#' ## Introduce aberrant responses: random guessing for latter 40% of the exam
+#' chng.pt <- .6
+#' abdat[(chng.pt*n+1):n, ] <- sample(c(1:(nthresh+1)), length(thetas)*(n-chng.pt*n), replace = T)
+#'
+#' ## Plot the GRM
+#' out<-theta_plots(abdat, a, b=b, iter=30, cutoff=0.01, H=.1, B=1, same.plot = F, type="GRM")
+#' ## Check bisquare plot
+#' out$`Bisquare Plot`
+#' ## Check Huber summary
+#' out$`Summary Statistics (Huber)`
 theta_plots<-function(dat, a, d=NULL, b=NULL, iter=30, cutoff=0.01, H=NULL, B=NULL, same.plot.dim = F, same.plot = T, type){
   if(type != "Dichotomous" & type != "GRM"){
     return(print("Please enter a valid type of model (e.g., 'Dichotomous' or 'GRM')."))
