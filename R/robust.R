@@ -4,27 +4,37 @@
 #' The probability that a subject responds in or above a category \eqn{k} for item \eqn{i} is \eqn{P^*_{ik}(\theta) = \frac{1}{1+ e^{-a_i (\theta-b_{ik})}}},
 #  for \eqn{K} categories and \eqn{K-1} threshold parameters  ($b_{i1}, ... b_{i,K-1}$), where $b_{ik}$ separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,..K-1}) (Embretson & Reise 2000).
 #  \eqn{a_i} is the item discrimination parameter.  The probability of endorsing exactly category \eqn{k} is \eqn{P_{ik}(\theta) = P^*_{i,k}(\theta) - P^*_{i,k+1}(\theta),} where \eqn{P^*_{i1}(\theta) \equiv 1.0} and \eqn{P^*_{iK}(\theta) \equiv 0.0.}
-#' @param pstar A matrix of \eqn{P^*} threshold values
+#' @param pstar A \eqn{n \times K-1 \times m} array of \eqn{P^*} threshold probability values, for \eqn{K} categories over \eqn{n} items and \eqn{m} subjects
 #' @return The probabilities \eqn{P} of responding in each category
 pstar_to_p<-function(pstar){
-  #input is an array with nrows = nitems, ncol = nthresh, dim[3] = nsubjects
-  if(!is.na(dim(pstar)[3])){ #if there is only one subject
+  if(!is.na(dim(pstar)[3])){ 
+    # If there is only one subject
+    # Initialize array for probabilities
     P<-array(dim = c(dim(pstar)[1], dim(pstar)[2]+1, dim(pstar)[3]))
     for(f in 1:dim(pstar)[3]){
+      # Calculate P_{j1} as 1 - P*_{j1}
       P[,1,f]<-1-pstar[,1,f]
       for(g in 2:dim(pstar)[2]){
+        # Calculate P_{jk} as P*_{j,k-1} - P*_{jk}
         P[,g,f]<-pstar[,g-1,f]-pstar[,g,f]
       }
+      # Calculate P_{jK} as P*_{j,K-1}
       P[,(dim(pstar)[2]+1),f]<-pstar[,dim(pstar)[2],f]
     }
-  }else{ #if there is more than one subject
+  }else{ 
+    # If there is more than one subject
+    # Initialize matrix for probabilities
     P<-matrix(nrow = dim(pstar)[1], ncol =dim(pstar)[2]+1)
+    # Calculate P_{j1} as 1 - P*_{j1}
     P[,1]<-1-pstar[,1]
     for(g in 2:dim(pstar)[2]){
+      # Calculate P_{jk} as P*_{j,k-1} - P*_{jk}
       P[,g]<-pstar[,g-1]-pstar[,g]
     }
+    # Calculate P_{jK} as P*_{j,K-1}
     P[,(dim(pstar)[2]+1)]<-pstar[,dim(pstar)[2]]
   }
+   # Return the matrix/array of category response probabilities
   return(P)
 }
 
@@ -58,15 +68,28 @@ probs.gen <- function(thetas, a, d){
 #' @param b A matrix of category threshold parameters, with the number of rows corresponding to \eqn{n} test items and the number of columns corresponding to \eqn{K-1} thresholds between \eqn{K} categories
 #' @return pstar A \eqn{n \times (K-1) \times m} array of category threshold probabilities for \eqn{n} items, \eqn{K} categories, and \eqn{m} subjects
 #' @return P a \eqn{n \times K \times m} array of probabilities of responding in each of \eqn{K} categories for \eqn{n} items, across \eqn{m} subjects
+#' @examples
+#' thetas <- rnorm(15)  # Example latent traits for 15 subjects
+#' a <- runif(10, 0.5, 1.5)  # Example discrimination parameters for 10 items
+#' b <- t(apply(matrix(runif(10*4, -2.5,2.5), nrow = 10, ncol = 4), 1, sort))  # Example threshold parameters for 10 items and 4 thresholds (5 categories)
+#' result <- probs.gen.grm(thetas, a, b)  # Calculate probabilities
 probs.gen.grm<-function(thetas, a, b){
-  l<-length(thetas) #number of subjects
-  n<-length(a) # test length
+  # Number of subjects
+  l<-length(thetas)
+  # Number of items
+  n<-length(a) 
+  # Number of thresholds between categories
   nthresh<-length(b)/n
-  #generate threshold probabilities based on theta
-  exponent<-apply(matrix(thetas), 1, function(theta) a*(theta-b))
-  exponent<-array(exponent, dim = c(n,nthresh,l))
-  pstar<-1/(1+exp(-1.7*exponent))
+  
+  # Generate threshold probabilities based on theta
+  exponent <- apply(matrix(thetas), 1, function(theta) a*(theta-b))
+  exponent <- array(exponent, dim = c(n,nthresh,l))
+  # Calculate P* using the GRM formula
+  pstar <- 1/(1+exp(-1.7*exponent))
+  # Convert P* to category probabilities using the pstar_to_p function
   P<-pstar_to_p(pstar)
+
+  # Return both P* and P
   return(list(pstar = pstar, P = P))
 }
 
@@ -111,16 +134,29 @@ huber<-function(r, H){
 #' This function generates Likert-type data from probabilities of responding in each category
 #' @param P A \eqn{n \times K \times m} array of probabilities of responding in each of \emph{K} categories over \emph{n} items for \emph{m} subjects
 #' @return dat A \eqn{n \times m} matrix of randomly generated Likert-type data using the sample() function for \emph{m} subjects over \emph{n} items
+#' @examples
+#' thetas <- rnorm(15)  # Example latent traits for 15 subjects
+#' a <- runif(10, 0.5, 1.5)  # Example discrimination parameters for 10 items
+#' b <- t(apply(matrix(runif(10*4, -2.5,2.5), nrow = 10, ncol = 4), 1, sort))  # Example threshold parameters for 10 items and 4 thresholds (5 categories)
+#' probs <- probs.gen.grm(thetas, a, b)  # Calculate probabilities
+#' data <- data.gen(probs$P)  # Generate Likert-type data
 
 data.gen<-function(P){
-  if(is.array(P)){ #if more than one subject
+  if(is.array(P)){ 
+    # If more than one subject
+    # Initialize matrix for generated data
     dat<-matrix(nrow = nrow(P), ncol = dim(P)[3])
     for(i in 1:dim(P)[3]){
+      # Loop over each subject
+      # For each item, sample a response category based on the probabilities
       dat[,i]<-apply(P[,,i], 1, function(x) sample(c(1:dim(P)[2]), 1, replace = T, prob=x))
     }
-  }else{#if only one subject
+  }else{
+    # If only one subject
+    # For each item, sample a response category based on the probabilities
     dat<-apply(P, 1, function(x) sample(c(1:dim(P)[2]), 1, replace = T, prob=x))
-  }
+  } 
+  # Return the generated Likert-type data
   return(dat)
 }
 
@@ -624,7 +660,7 @@ choose.tuco<-function(r, H=NULL, B=NULL){
 #' b <- matrix(runif(n*nthresh, -2.5,2.5), nrow = n, ncol =nthresh)
 #' b <- t(apply(b, 1, sort))
 #'
-#' ## Generate probabilities
+#' ## Calculate probabilities
 #' probs <- probs.gen.grm(thetas, a, b)
 #'
 #' ## Generate input data from probabilities
