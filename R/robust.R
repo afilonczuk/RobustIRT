@@ -398,59 +398,78 @@ theta.est<-function(dat, a, d, iter=30, cutoff=.01, init.val=rep(0,ncol(a)), wei
 #' mle$theta
 #' 
 theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type="equal", tuning.par=NULL){
-  # first to check if the turning parameter is given when the weight.type is not "normal"
+  # Check if the turning parameter is given when the weight.type is not "equal"
   if (weight.type != "equal") {
     if (is.null(tuning.par)) {
       stop(paste("The turning parameter cannot be null when the weight.type is ", weight.type, sep = ""))
     }
   }
-  l<-ncol(dat) #number of subjects
-  n<-nrow(dat) # test length
-  nthresh<-ncol(b) #number of threshold parameters
+  # Number of subjects
+  l<-ncol(dat) 
+  # Test length
+  n<-nrow(dat) 
+  # Number of threshold parameters
+  nthresh<-ncol(b) 
 
+  # Array to store threshold values of interest for each response
   dat.b<-array(dim = list(n, l, 2))
+  
+  # Arrays/matrices to store final values of theta estimates, standard errors, nonconvergence rates, and the residuals and thetas at each iteration
   theta.est2<- standard.error<- matrix(data=NA, nrow=l)
   convergence<-matrix(0, nrow=l)
   theta.progression<-matrix(NA, nrow = l, ncol = iter)
   residual<-matrix(data=NA, nrow = n, ncol = l)
-  for (i in 1:l){
+
+  # Select threshold values (b) based on response categories
+  # b_{jk} and b_{j,k+1} are used to calculate the probability of the response k on item jfor (i in 1:l){
     for(j in 1:n){
-      #extract threshold values of interest according to each response & stored in dat.b
-      # e.g. if the response is in category "3", we will use the threshold parameters from the previous threshold and the threshold corresponding to that category
       if(dat[j,i]==1){
-        dat.b[j,i,1]<- -1000
+        # For responses in lowest category
+        dat.b[j,i,1]<- -100000 # very small b_{jk} will give probability 1
         dat.b[j,i,2]<-b[j,1]
       }else if(dat[j,i]>nthresh){
+        # For responses in highest category
         dat.b[j,i,1]<-b[j,dat[j,i]-1]
-        dat.b[j,i,2]<-1000
+        dat.b[j,i,2]<-100000 # very large b_{j,k+1} will give probability 0
       }else{
+        # For responses in middle categories
         dat.b[j,i,1]<-b[j,dat[j,i]-1]
         dat.b[j,i,2]<-b[j,dat[j,i]]
       }
     }
   }
+
+  # Loop to estimate theta for each subject 
   for(i in 1:l){
-    if(length(init.val)>1){
-      theta<-init.val[i]
-    }else{
-      theta<-init.val
-    }
+    # Initialize theta value
+    theta<-ifelse(length(init.val)>1, init.val[i], init.val)
     P0<-0
+
+    # Iterative loop for maximum likelihood estimation of theta
     for (k in 1:iter){
+
+      # Compute item response probability for the response category and next category
       exponent_0<-a*(theta-dat.b[,i,1])
       exponent_1<-a*(theta-dat.b[,i,2])
-      #P*k-1 and P*k
+      
+      # Calculate P*_k and P*_{k+1}
       ps0<-1/(1+exp(-1.7*exponent_0))
       ps1<-1/(1+exp(-1.7*exponent_1))
       qs0<-1-ps0
       qs1<-1-ps1
-      #P_k
+      
+      # Compute P_k, the probability of response k
       P<-ps0-ps1
 
+      # Calculate expected response
       pstar<-1/(1+exp(-1.7*(a*(theta-b))))
       probs<-pstar_to_p(pstar)
-      expected.value<-probs%*%matrix(c(1:(nthresh+1))) #expected response
-      residual[,i]<-(dat[,i]-expected.value)/nthresh #residual based on the difference between the bserved and expected response
+      expected.value<-probs%*%matrix(c(1:(nthresh+1))) 
+
+      # Calculate standardized residual
+      residual[,i]<-(dat[,i]-expected.value)/sqrt(rowSums(apply(matrix(1:(nthresh+1)), 1, function(x) x-expected.value)^2*probs))  
+      
+      # Compute item response weights based on specified weight function (bisquare, Huber, equal)
       weighting.term <- NULL
       if (weight.type == "bisquare") {
         weighting.term <- bisquare(residual[,i], tuning.par)
@@ -459,34 +478,50 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type
       } else {
         weighting.term <- 1
       }
+      # Check if weighting term is determined
       if (is.null(weighting.term)) {
         stop("Cannot determine the weighting function.")
       }
-
-      D1<-sum(1.7*a*weighting.term*(ps0*qs0-ps1*qs1)/P) #first derivative
-      D2<-sum(1.7^2*a^2*weighting.term*( (ps0*qs0*(qs0-ps0)-ps1*qs1*(qs1-ps1))/P - (ps0*qs0-ps1*qs1)^2/P^2 )) #second derivative
-      if(is.na(theta-D1/D2)){ #check if we received NAs
+      
+      # First and second derivatives of the log-likelihood
+      D1<-sum(1.7*a*weighting.term*(ps0*qs0-ps1*qs1)/P) 
+      D2<-sum(1.7^2*a^2*weighting.term*( (ps0*qs0*(qs0-ps0)-ps1*qs1*(qs1-ps1))/P - (ps0*qs0-ps1*qs1)^2/P^2 )) 
+      
+      # Check for NAs & record nonconvergence
+      if(is.na(theta-D1/D2)){
         theta.est2[i]<-theta<-NA
         convergence[i,1]<-1
         break
       }
+
+      # Update and store theta for this iteration
       theta<-theta.progression[i,k]<-theta-D1/D2
-      log_like<-sum(log(P))-sum(log(P0)) #loglikelihood for convergence criterion
+      
+      # Stop Newton-Raphson method if log-likelihood difference is converged / less than cutoff
+      log_like<-sum(log(P))-sum(log(P0))
       if(abs(log_like)<cutoff){
         break
       }
+
+      # Update probability for loglikelihood comparison
       P0<-P
     }
+
+    # Store final theta estimate for subject
     theta.est2[i]<-theta
+    
+    # Compute standard error via test information
     pstar<-1/(1+exp(-1.7*(a*(theta-b))))
     probs<-pstar_to_p(pstar)
     test.info<-sum(a^2*probs*(1-probs))
     standard.error[i]<-ifelse(is.na(1/sqrt(test.info)), NA, 1/sqrt(test.info))
-    
-    if(k==iter){#if theta never converged to within tolerance
+
+    # Handle cases where theta didn't converge withing number of iterations
+    if(k==iter){
       theta.est2[i]<-standard.error[i]<-NA
       convergence[i,1]<-1
-    }else if(!is.na(theta) & theta< -3){ #replace thetas that converged outside [-3, 3]
+    }else if(!is.na(theta) & theta< -3){ 
+      # Replace thetas that converged outside [-3, 3]
       theta<--3
       pstar<-1/(1+exp(-1.7*(a*(theta-b))))
       probs<-pstar_to_p(pstar)
