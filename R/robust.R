@@ -96,36 +96,25 @@ probs.gen.grm<-function(thetas, a, b){
 #' Bisquare Weighting Function
 #'
 #' This function returns the value of the bisquare weight given a residual and bisquare tuning paramter
-#' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item
+#' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals that are NA are given a weight of 0.
 #' @param B Bisquare tuning parameter
 #' @return Bisquare weight value
 bisquare<-function(r, B){
-  w <- r
-  for(i in 1:length(r)){
-    if(abs(r[i]) <= B){
-      w[i] <- (1-(r[i]/B)^2)^2
-    }else{
-      w[i] <- 0.0000001
-    }
-  }
+   w<-ifelse(is.nan(r), 0, 
+            ifelse(abs(r) <= B, (1-(r/B)^2)^2, 0.0000001))
+  
   return(w)
 }
 
 #' Huber Weighting Function
 #'
 #' This function returns the value of the Huber weight given a residual and Huber tuning paramter
-#' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item
+#' @param r A residual that measures the inconsistency of a response from the subject's assumed response model, on one item. Residuals that are NA are given a weight of 0.
 #' @param H Huber tuning parameter
 #' @return Huber weight value
 huber<-function(r, H){
-  w <- r
-  for(i in 1:length(r)){
-    if(abs(r[i]) <= H){
-      w[i] <- 1
-    }else{
-      w[i] <- H/abs(r[i])
-    }
-  }
+  w<-ifelse(is.nan(r), 0, 
+            ifelse(abs(r) <= H, 1, H/abs(r)))
   return(w)
 }
 
