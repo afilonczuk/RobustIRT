@@ -411,7 +411,8 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type
   residual<-matrix(data=NA, nrow = n, ncol = l)
 
   # Select threshold values (b) based on response categories
-  # b_{jk} and b_{j,k+1} are used to calculate the probability of the response k on item jfor (i in 1:l){
+  # b_{jk} and b_{j,k+1} are used to calculate the probability of the response k on item j
+  for (i in 1:l){
     for(j in 1:n){
       if(dat[j,i]==1){
         # For responses in lowest category
