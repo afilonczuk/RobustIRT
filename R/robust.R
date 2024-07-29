@@ -2,7 +2,7 @@
 #'
 #' This function calculates \eqn{P}, the probabilities of responding in each category, from the \eqn{P^*} threshold values using the graded response model.
 #' The probability that a subject responds in or above a category \eqn{k} for item \eqn{i} is \eqn{P^*_{ik}(\theta) = \frac{1}{1+ e^{-a_i (\theta-b_{ik})}}},
-#  for \eqn{K} categories and \eqn{K-1} threshold parameters  ($b_{i1}, ... b_{i,K-1}$), where $b_{ik}$ separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,..K-1}) (Embretson & Reise 2000).
+#  for \eqn{K} categories and \eqn{K-1} threshold parameters  ($b_{i,1}, ... b_{i,K-1}$), where $b_{i,k}$ separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,..K-1}) (Embretson & Reise 2000).
 #  \eqn{a_i} is the item discrimination parameter.  The probability of endorsing exactly category \eqn{k} is \eqn{P_{ik}(\theta) = P^*_{i,k}(\theta) - P^*_{i,k+1}(\theta),} where \eqn{P^*_{i1}(\theta) \equiv 1.0} and \eqn{P^*_{iK}(\theta) \equiv 0.0.}
 #' @param pstar A \eqn{n \times K-1 \times m} array of \eqn{P^*} threshold probability values, for \eqn{K} categories over \eqn{n} items and \eqn{m} subjects
 #' @return The probabilities \eqn{P} of responding in each category
@@ -40,15 +40,16 @@ pstar_to_p<-function(pstar){
 
 #' Response Probability Calculation (2PL)
 #'
-#' This function calculates the probabilities of getting items correct given the item parameters and a person's abilities
-#  \eqn{\boldsymbol\theta = ({\theta}_1, {\theta}_2, ... {\theta}_p)'} on \emph{p} dimensions, according to the multidimensional 2PL IRT model:
-#  \eqn{P(X=1 | \boldsymbol{\theta}) =  \frac{1}{1+ e^{-1.7(\boldsymbol{a_i}\boldsymbol\theta+d_i)}}}.
-#  An item \emph{i} has slope parameters \eqn{\boldsymbol{a_i}=(a_{1i}, a_{2i}, ..., a_{pi})'} and intercept parameter \eqn{d_i}.
-#' @param thetas A vector of length \emph{p} containing students’ latent traits, where \emph{p} is the number of test dimensions
-#' @param a A \eqn{n \times p} matrix containing fixed item slope parameters for \emph{p} dimensions and \emph{n} test items
-#' @param d A vector of length \emph{n} containing fixed intercept parameters, for \emph{n} test items
-#' @return P A vector of probabilities for endorsing each of \emph{n} test items
-#' @return residual A vector of residuals detecting misfit between the subject and \emph{n} test items, according to the formula \eqn{r_i = \textbf a_i\boldsymbol\theta + d_i} (see theta.est)
+#' This function calculates the probabilities of getting items correct given the item parameters and latent trait vector for person \emph{i}
+#  \eqn{\boldsymbol{\theta}_i = ({\theta}_{i1}, {\theta}_{i2}, ... {\theta}_{iL})'} on \emph{L} dimensions, according to the multidimensional IRT model (McKinley & Reckase, 1983) :
+#  \eqn{P (X_{ij}=1 | \boldsymbol{\theta}_i) =  \frac{1}{1+ e^{-1.7(\boldsymbol{a_j}\boldsymbol\theta+d_j)}}} for \eqn{j=1,...,J} items.
+#  An item \emph{j} has slope parameters \eqn{\boldsymbol{a_j}=(a_{1j}, a_{2j}, ..., a_{Lj})'} and intercept parameter \eqn{d_j}.
+#' @param thetas A vector of length \emph{L} containing students’ latent traits, where \emph{L} is the number of test dimensions
+#' @param a A \eqn{J \times L} matrix containing fixed item slope parameters for \emph{L} dimensions and \emph{J} test items
+#' @param d A vector of length \emph{J} containing fixed intercept parameters, for \emph{J} test items
+#' @references McKinley, R. L., & Reckase, M. D. (1983, August). \emph{An Extension of the Two-Parameter Logistic Model to the Multidimensional Latent Space} (Research No. ONR83-2). Iowa City, IA: American College Testing Program.
+#' @return P A vector of probabilities for endorsing each of \emph{J} test items
+#' @return residual A vector of residuals detecting misfit between the subject and \emph{J} test items, according to the formula \eqn{r_{ij} = \textbf a_j\boldsymbol{\theta}_i + d_j} (see theta.est)
 probs.gen <- function(thetas, a, d){
   thetas <- matrix(thetas, nrow = dim(a)[2], byrow = T)
   r <- a%*%thetas+d
@@ -60,14 +61,14 @@ probs.gen <- function(thetas, a, d){
 #'
 #' This function generates \eqn{P^*}, the threshold probability, and \eqn{P}, the probability of responding in each category for a vector of latent traits
 #  using parameters needed for the GRM
-#  The probability that a subject responds in or above a category \eqn{k} for item \eqn{i} is \eqn{P^*_{ik}(\theta) = \frac{1}{1+ e^{-a_i (\theta-b_{ik})}}},
-#  for \eqn{K} categories and \eqn{K-1} threshold parameters  ($b_{i1}, ... b_{i,K-1}$), where $b_{ik}$ separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,..K-1}) (Embretson & Reise 2000).
-#  \eqn{a_i} is the item discrimination parameter.  The probability of endorsing exactly category \eqn{k} is \eqn{P_{ik}(\theta) = P^*_{i,k}(\theta) - P^*_{i,k+1}(\theta),} where \eqn{P^*_{i1}(\theta) \equiv 1.0} and \eqn{P^*_{iK}(\theta) \equiv 0.0.}
+#  The probability that a subject responds in or above a category \eqn{k} for item \eqn{j} is \eqn{P^*_{jk}(\theta) = \frac{1}{1+ e^{-a_j (\theta-b_{jk})}}},
+#  for \eqn{K} categories and \eqn{K-1} threshold parameters  ($b_{j1}, ... b_{j,K-1}$), where $b_{jk}$ separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,..K-1}) (Embretson & Reise, 2000).
+#  \eqn{a_j} is the item discrimination parameter.  The probability of endorsing exactly category \eqn{k} is \eqn{P_{jk}(\theta) = P^*_{j,k}(\theta) - P^*_{j,k+1}(\theta),} where \eqn{P^*_{j1}(\theta) \equiv 1.0} and \eqn{P^*_{jK}(\theta) \equiv 0.0.}
 #' @param thetas A vector of latent traits for \eqn{m} subjects
-#' @param a A vector of discrimination parameters for \eqn{n} test items
-#' @param b A matrix of category threshold parameters, with the number of rows corresponding to \eqn{n} test items and the number of columns corresponding to \eqn{K-1} thresholds between \eqn{K} categories
-#' @return pstar A \eqn{n \times (K-1) \times m} array of category threshold probabilities for \eqn{n} items, \eqn{K} categories, and \eqn{m} subjects
-#' @return P a \eqn{n \times K \times m} array of probabilities of responding in each of \eqn{K} categories for \eqn{n} items, across \eqn{m} subjects
+#' @param a A vector of discrimination parameters for \eqn{J} test items
+#' @param b A matrix of category threshold parameters, with the number of rows corresponding to \eqn{J} test items and the number of columns corresponding to \eqn{K-1} thresholds between \eqn{K} categories
+#' @return pstar A \eqn{J \times (K-1) \times N} array of category threshold probabilities for \eqn{J} items, \eqn{K} categories, and \eqn{N} subjects
+#' @return P a \eqn{J \times K \times N} array of probabilities of responding in each of \eqn{K} categories for \eqn{J} items, across \eqn{N} subjects
 #' @examples
 #' thetas <- rnorm(15)  # Example latent traits for 15 subjects
 #' a <- runif(10, 0.5, 1.5)  # Example discrimination parameters for 10 items
@@ -121,8 +122,8 @@ huber<-function(r, H){
 #' Likert-type data generation function from probabilities of responding in each category
 #'
 #' This function generates Likert-type data from probabilities of responding in each category
-#' @param P A \eqn{n \times K \times m} array of probabilities of responding in each of \emph{K} categories over \emph{n} items for \emph{m} subjects
-#' @return dat A \eqn{n \times m} matrix of randomly generated Likert-type data using the sample() function for \emph{m} subjects over \emph{n} items
+#' @param P A \eqn{J \times K \times N} array of probabilities of responding in each of \emph{K} categories over \emph{J} items for \emph{N} subjects
+#' @return dat A \eqn{J \times N} matrix of randomly generated Likert-type data using the sample() function for \emph{N} subjects over \emph{J} items
 #' @examples
 #' thetas <- rnorm(15)  # Example latent traits for 15 subjects
 #' a <- runif(10, 0.5, 1.5)  # Example discrimination parameters for 10 items
@@ -152,32 +153,32 @@ data.gen<-function(P){
 #' Ability Estimation Function Using Robust Estimation - Dichotomous Data
 #'
 #' This function return the list of ability estimations based on the given weighting function
-#' @param dat A \eqn{n \times m} matrix of dichotomously-coded data where 1 represents an endorsed response and 0 represents a non-endorsed response. \emph{n} is the test length and \emph{m} is the number of subjects.
-#' @param a A \eqn{p \times n} matrix containing fixed item slope parameters for \emph{n} items and \emph{p} dimensions
-#' @param d A vector of length \emph{n} containing fixed intercept parameters for n items. If the model is unidimensional, this vector should contain difficulty parameters corresponding to \emph{b} in the unidimensional 2PL model.
-#' @param iter Maximum number of iterations for the Newton-Raphson method. Default is 100.
+#' @param dat A \eqn{J \times N} matrix of dichotomously-coded data where 1 represents an endorsed response and 0 represents a non-endorsed response. \emph{J} is the test length and \emph{N} is the number of subjects.
+#' @param a A \eqn{L \times J} matrix containing fixed item slope parameters for \emph{J} items and \emph{L} dimensions
+#' @param d A vector of length \emph{J} containing fixed intercept parameters for J items. If the model is unidimensional, this vector should contain difficulty parameters corresponding to \emph{b} in the unidimensional 2PL model.
+#' @param iter Maximum number of iterations for the Newton-Raphson method. Default is 30.
 #' @param cutoff Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged. Default is 0.01.
-#' @param init.val A vector of length \emph{p} containing initial latent trait values for the maximum likelihood estimation. The default is 0 for each of the \emph{p} dimensions.
+#' @param init.val A vector of length \emph{L} containing initial latent trait values for the maximum likelihood estimation. The default is 0 for each of the \emph{L} dimensions.
 #' @param weight.category The weighting strategy to use: "equal", "bisquare", or "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.
 #' @param tuning.par The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting.
-#' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
-#' Using the multidimensional IRT model for dichotomous data, the probability of a correct response (e.g., "1") on item \emph{i} is given by the formula \eqn{P(X=1 | \boldsymbol{\theta}) =  \frac{1}{1+ e^{-1.7(\boldsymbol{a_i}\boldsymbol\theta+d_i)}},} where \eqn{\boldsymbol{a}} is a \eqn{p \times n} matrix of item slope parameters for \emph{n} items and \emph{p} dimensions. Note that \emph{d} here is considered the intercept parameter and itself is not the item difficulty as is \emph{b} in the 2PL model for unidimensional dichotomous data.
-#' Unidimensional robust estimations can also be calculated from this model when input parameters have \emph{p}=1 dimensions. The 2PL probability model for unidimensional data is \eqn{P(X=1 | \theta) = \frac{1}{1+ e^{-1.7a_{i}(\theta-b_{i})}}} where \emph{a} is the same as the multidimensional case where \emph{p=1}.
-#' The contribution of item \emph{i} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_i)} as a function of a residual \eqn{r_i} for the item \emph{i}:
-#' \deqn{\sum_i^n \omega(r_i) \frac{\partial}{\partial\boldsymbol\theta} \ln L(\boldsymbol\theta;x_i) = 0 }
-#' The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_i = \textbf a_i\boldsymbol\theta + d_i } in the multidimensional case.
+#' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\boldsymbol{\theta}}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
+#' Using the multidimensional IRT model for dichotomous data, the probability of a correct response (e.g., "1") on item \emph{j} is given by the formula \eqn{P(X_{ij}=1 | \boldsymbol{\theta}_i) =  \frac{1}{1+ e^{-1.7(\boldsymbol{a}_j\boldsymbol\theta_i+d_j)}},} where \eqn{\boldsymbol{a}} is a \eqn{L \times J} matrix of item slope parameters for \emph{J} items and \emph{L} dimensions. Note that \emph{d} here is considered the intercept parameter and itself is not the item difficulty as is \emph{b} in the 2PL model for unidimensional dichotomous data.
+#' Unidimensional robust estimations can also be calculated from this model when input parameters have \emph{L}=1 dimensions. The 2PL probability model for unidimensional data is \eqn{P(X_{ij} =1 | \theta_i) = \frac{1}{1+ e^{-1.7a_{j}(\theta_i-b_{j})}}} where \emph{a} is the same as the multidimensional case where \emph{L=1}.
+#' The contribution of item \emph{j} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_j)} as a function of a residual \eqn{r_{ij}} for the item \emph{j} and person \emph{i}:
+#' \deqn{\sum_j^J \omega(r_{ij}) \frac{\partial}{\partial\boldsymbol\theta_i} \ln L(\boldsymbol\theta_j;x_{ij}) = 0 }
+#' The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_{ij} = \textbf a_j\boldsymbol\theta_i + d_j } in the multidimensional case.
 #' Two types of weight functions are used: Tukey's bisquare weighting function (Mosteller & Tukey, 1977)
-#' \deqn{\omega(r_i)=\begin{cases}[1-(r_i/B)^2]^2, & \text{if} |r_i|\leq B.\\0, & \text{if} |r_i|>B.\end{cases}}
+#' \deqn{\omega(r_{ij})=\begin{cases}[1-(r_{ij}/B)^2]^2, & \text{if} |r_{ij}|\leq B.\\0, & \text{if} |r_{ij}|>B.\end{cases}}
 #' and the Huber weighting function (Huber, 1981)
-#' \deqn{\omega(r_i)=\begin{cases}1, & \text{if} |r_i|\leq H.\\H/|r_i|, & \text{if} |r_i|>H.\end{cases}}
+#' \deqn{\omega(r_{ij})=\begin{cases}1, & \text{if} |r_{ij}|\leq H.\\H/|r_{ij}|, & \text{if} |r_{ij}|>H.\end{cases}}
 #' Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
 #' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
 #' @references Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
-#' @return Theta A \eqn{m \times p} matrix of ability estimates for \emph{m} subjects and \emph{p} dimensions
-#' @return Convergence \eqn{m \times p} matrix containing indicators of convergence for \emph{m} subjects: a “0” indicates the value converged; a “1” indicates the maximum likelihood estimation did not converge to any value; and “Singular” indicates the Hessian matrix was singular and could not be used to continue the maximum likelihood estimation.
-#' @return theta.progression A \eqn{p \times iter \times m} array for \emph{p} dimensions, \emph{iter} number of iterations supplied to the input, and \emph{m} subjects. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value, infinite values (nonconverged), or encounters a singular matrix error.
-#' @return residual A \eqn{n \times m} matrix with residuals corresponding to the ability estimate for \emph{m} subjects respective to the \emph{n} test items
+#' @return Theta A \eqn{N \times L} matrix of ability estimates for \emph{N} subjects and \emph{L} dimensions
+#' @return Convergence \eqn{N \times L} matrix containing indicators of convergence for \emph{N} subjects: a “0” indicates the value converged; a “1” indicates the maximum likelihood estimation did not converge to any value; and “Singular” indicates the Hessian matrix was singular and could not be used to continue the maximum likelihood estimation.
+#' @return theta.progression A \eqn{L \times p \times N} array for \emph{L} dimensions, \emph{p} number of iterations supplied to the input, and \emph{N} subjects. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value, infinite values (nonconverged), or encounters a singular matrix error.
+#' @return residual A \eqn{J \times N} matrix with residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items
 #' @export
 #'
 #' @examples
@@ -312,7 +313,7 @@ theta.est<-function(dat, a, d, iter=30, cutoff=.01, init.val=rep(0,ncol(a)), wei
 #' @param weight.category The weighting strategy to use, "equal", "bisquare" and "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.
 #' @param tuning.par The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting in robust estimation.
 #' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
-#' Under the graded response model (GRM), the probability that a subject responds in or above a category $k$ for item $i$ is \eqn{P^*_{ik}(\theta) = \frac{1}{1+ e^{-a_i (\theta-b_{ik})}}}  (Embretson, 2000). \eqn{a_i} is the item discrimination parameter. There are \emph{K} categories and \eqn{K-1} threshold parameters (\eqn{b_{i1}, ... b_{i,K-1}}), where \eqn{b_{ik}} separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,..K-1}).
+#' Under the graded response model (GRM), the probability that a subject responds in or above a category $k$ for item $i$ is \eqn{P^*_{ik}(\theta) = \frac{1}{1+ e^{-a_i (\theta-b_{ik})}}}  (Embretson & Reise, 2000). \eqn{a_i} is the item discrimination parameter. There are \emph{K} categories and \eqn{K-1} threshold parameters (\eqn{b_{i1}, ... b_{i,K-1}}), where \eqn{b_{ik}} separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,..K-1}).
 #' The probability of endorsing exactly category \eqn{k} is therefore: \eqn{P_{ik}(\theta) = P^*_{i,k}(\theta) - P^*_{i,k+1}(\theta),} where \eqn{P^*_{i1}(\theta) \equiv 1.0} and \eqn{P^*_{iK}(\theta) \equiv 0.0.}
 #' The contribution of item \emph{i} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_i)} as a function of a residual \eqn{r_i} for the item:
 #' \deqn{\sum^n_{i=1} \omega(r_i) \sum^K_{k=1} u_{ik}\text{log}P_{ik} = 0 }
