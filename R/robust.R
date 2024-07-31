@@ -156,7 +156,9 @@ data.gen<-function(P){
   return(dat)
 }
 
-# Function to calculate the standard errors using the Fisher Information matrix for the MIRT model
+#' Calculate standard errors of ability estimates for MIRT data
+#' 
+#' Calculate the standard errors of ability estimates using the Fisher Information matrix for multidimensional dichotomous data using the MIRT model
 #' @param theta Vector of latent traits (abilities) for an individual
 #' @param b Vector of difficulty parameters for the items
 #' @param a Matrix of discrimination parameters for the items (rows are items, columns are dimensions)
