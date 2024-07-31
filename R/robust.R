@@ -156,6 +156,63 @@ data.gen<-function(P){
   return(dat)
 }
 
+# Function to calculate the standard errors using the Fisher Information matrix for the MIRT model
+#' @param theta Vector of latent traits (abilities) for an individual
+#' @param b Vector of difficulty parameters for the items
+#' @param a Matrix of discrimination parameters for the items (rows are items, columns are dimensions)
+#' @param D Scaling constant. Default is 1.7 to scale the item parameters to align with a normal ogive model. 1.0 may be used alternatively.)
+#' @return Vector of standard errors
+#' @export
+#'
+#' @examples
+#' #Define the parameters
+#' theta <- c(0.5, -1.2) # Example vector of latent traits
+#' d <- c(0.0, -0.5, 1.0) # Example vector of difficulty parameters for 3 items
+#' a <- matrix(c(1.0, 0.5,
+#'               0.7, 1.2,
+#'               1.5, 1.0), nrow = 3, byrow = TRUE) # Example matrix of discrimination parameters for 3 items
+#' D <- 1.7 # Scaling constant
+
+#' #Calculate the standard errors
+#' std.errs <- std.err.dichotomous(theta, d, a, D)
+#' print(std.errs)
+
+std.err.dichotomous<- function(theta, d, a, D = 1.7){
+  
+  # Number of items and dimensions
+  n <- length(d)
+  dim <- length(theta)
+  
+  # Calculate probabilities
+  probs<-probs.gen(theta, a, d)$P
+  
+  # Initialize the Fisher Information matrix
+  info.mat <- matrix(0, nrow = dim, ncol = dim)
+  
+  # Loop over each item
+  for (j in 1:n) {
+    # Discrimination vector for the j-th item
+    a_j <- a[j, ]
+    
+    # Probability for the j-th item
+    P_j_theta <- probs[j,]
+    
+    # Calculate the Fisher Information contribution of the j-th item
+    I_j <- D^2 * P_j_theta * (1 - P_j_theta) * (a_j %*% t(a_j))
+    
+    # Add the contribution to the total Fisher Information matrix
+    info.mat <- info.mat + I_j
+  }
+  # Calculate the inverse of the Fisher Information matrix
+  inv_info_mat <- solve(info.mat)
+  
+  # The standard errors are the square roots of the diagonal elements of the inverse Fisher Information matrix
+  standard_errors <- sqrt(diag(inv_info_mat))
+  
+  
+  return(standard_errors)
+}
+
 #' Ability Estimation Function Using Robust Estimation - Dichotomous Data
 #'
 #' Calculate robust ability estimates using the MIRT item response function with the given weight function, fixed item parameters, and item responses
@@ -167,6 +224,7 @@ data.gen<-function(P){
 #' @param init.val A vector of length \emph{L} containing initial latent trait values for the maximum likelihood estimation. The default is 0 for each of the \emph{L} dimensions.
 #' @param weight.category The weighting strategy to use: "equal", "bisquare", or "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.
 #' @param tuning.par The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting.
+#' @param residual Type of residual if using bisquare or Huber weight functions. Default is "information" while "standardized" can alternatively be used.
 #' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\boldsymbol{\theta}}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
 #' Using the multidimensional IRT model for dichotomous data (McKinley & Reckase, 1983), the probability of a correct response (e.g., "1") on item \emph{j} is given by the formula \eqn{P(X_{ij}=1 | \boldsymbol{\theta}_i) =  \frac{1}{1+ e^{-1.7(\boldsymbol{a}_j\boldsymbol\theta_i+d_j)}},} where \eqn{\boldsymbol{a}_j} is a \eqn{L \times J} matrix of item slope parameters for \emph{J} items and \emph{L} dimensions. The intercept parameter is \eqn{d_j}.  
 #' The 2PL IRT model for unidimensional data subsumes the MIRT model and can be used for unidimensional robust estimation (when \emph{L}=1), using the formula \eqn{P(X_{ij} =1 | \theta_i) = \frac{1}{1+ e^{-1.7a_{j}(\theta_i-b_{j})}}} where \eqn{a_j} is the same as the multidimensional case where \emph{L=1}. The parameter \eqn{b_j} differs from MIRT and can be interpreted as the item difficulty.
@@ -182,8 +240,9 @@ data.gen<-function(P){
 #' @references McKinley, R. L., & Reckase, M. D. (1983, August). \emph{An Extension of the Two-Parameter Logistic Model to the Multidimensional Latent Space} (Research No. ONR83-2). Iowa City, IA: American College Testing Program.
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
 #' @references Schuster, C., & Yuan, K.-H. (2011). Robust Estimation of Latent Ability in Item Response Models. \emph{Journal of Educational and Behavioral Statistics}, 36(6), 720–735. https://doi.org/10.3102/1076998610396890
-#' @return Theta A \eqn{N \times L} matrix of ability estimates for \emph{N} subjects and \emph{L} dimensions
-#' @return Convergence \eqn{N \times L} matrix containing indicators of convergence for \emph{N} subjects: a “0” indicates the value converged; a “1” indicates the maximum likelihood estimation did not converge to any value; and “Singular” indicates the Hessian matrix was singular and could not be used to continue the maximum likelihood estimation.
+#' @return theta A \eqn{N \times L} matrix of ability estimates for \emph{N} subjects and \emph{L} dimensions
+#' @return standard.errors A \eqn{N \times L} matrix of the standard errors of ability estimates for \emph{N} subjects and \emph{L} dimensions, calculated by the square root of the reciprocal of the Fisher information. NAs replace nonconverging values. 
+#' @return convergence \eqn{N \times L} matrix containing indicators of convergence for \emph{N} subjects: a “0” indicates the value converged; a “1” indicates the maximum likelihood estimation did not converge to any value; and “Singular” indicates the Hessian matrix was singular and could not be used to continue the maximum likelihood estimation.
 #' @return theta.progression A \eqn{L \times p \times N} array for \emph{L} dimensions, \emph{p} number of iterations supplied to the input, and \emph{N} subjects. Each column provides the updated theta estimate at each iteration of the Newton-Raphson algorithm until the change in log-likelihood for that subject reaches the cutoff value, infinite values (nonconverged), or encounters a singular matrix error.
 #' @return residual A \eqn{J \times N} matrix with residuals corresponding to the ability estimate for \emph{N} subjects respective to the \emph{J} test items
 #' @export
@@ -193,7 +252,7 @@ data.gen<-function(P){
 #' n <- 30
 #'
 #' ## Number of iterations of Newton's method
-#' iter <- 15
+#' iters<-50
 #'
 #' ## Number of dimensions
 #' dim <- 3
@@ -220,92 +279,131 @@ data.gen<-function(P){
 #' dat <- apply(probs$P, c(1,2), function(x) rbinom(1,1,x))
 #'
 #' ## Estimate thetas
-#' theta.est(dat, a, d, iter = 15, theta0=matrix(rep(0,dim)), weight.type="Huber", tuning.par=1)
+#' theta.est(dat, a, d, iters, init.val=matrix(rep(0,dim)), weight.type="Huber", tuning.par=1)
 
-
-theta.est<-function(dat, a, d, iter=30, cutoff=.01, init.val=rep(0,ncol(a)), weight.type="equal", tuning.par=NULL){
-  # first to check if the turning parameter is given when the weight.type is not "equal"
+theta.est<-function(dat, a, d, iter=30, cutoff=.01, init.val=rep(0,ncol(a)), weight.type="equal", tuning.par=NULL, residual = "information"){
+  # Check if the turning parameter is given when the weight.type is not "equal"
   if (weight.type != "equal") {
     if (is.null(tuning.par)) {
       stop(paste("The turning parameter cannot be null when the weight.type is ", weight.type, sep = ""))
+    }
+    if (is.null(residual)) {
+      stop(paste("The residual cannot be null when the weight.type is ", weight.type, sep = ""))
     }
   }
   dim<-ncol(a) #number of dimensions
   n<-length(d) #number of items
   N<-ncol(dat) #number of subjects
-  D<-1.7
-
-  theta.out<-matrix(nrow = N, ncol = dim)
-  convergence<-matrix(0, nrow=N, ncol = dim)
-  theta.progression<-array(NA, dim = c(dim, iter, N))
-  residual<-array(data=NA, dim = c(n, N, iter))
-
-  for (i in 1:N){ #looping over subjects if more than one
+  D<-1.7 # Scaling constant for ML estimation
+  
+  # Initialize matrices to store results
+  theta.out<-standard.errs<-matrix(nrow = N, ncol = dim) # Estimated thetas and standard errors
+  convergence<-matrix(0, nrow=N, ncol = dim) # Convergence status
+  theta.progression<-array(NA, dim = c(dim, iter, N)) # Progression of thetas over interations
+  residual.out<-array(data=NA, dim = c(n, N, iter)) # Residuals
+  
+  for (i in 1:N){ # Loop over subjects if more than one
+    # Initialize theta values
     if(length(init.val)>dim){
       theta<-matrix(init.val[i,], nrow = ncol(a), byrow = T)
     }else{
       theta<-matrix(init.val, nrow = ncol(a), byrow = T)
     }
-    P0<-0 #starting probability for calculating likelihood for convergence
-    for(j in 1:iter){ #prespecified iterations of Newton-Raphson Algorithm
+    P0<-0 # Starting probability for calculating likelihood for convergence
+    for(j in 1:iter){ # Loop over max number of iterations for Newton-Raphson Algorithm
       if(dim==1){
         theta<-as.vector(theta)
-        ex<-a*(theta-d)
-        }else{ex<-a%*%theta+d} #residual
-      P<-1/(1+exp(-D*ex))
-      Hess<-matrix(ncol = dim, nrow = dim)
-      D1<-matrix(nrow=dim)
-      for(k in 1:dim){
-        weighting.term <- NULL
-        if (weight.type == "bisquare") {
-          weighting.term <- bisquare(ex, tuning.par)
-        } else if (weight.type == "Huber") {
-          weighting.term <- huber(ex, tuning.par)
-        } else {
-          weighting.term <- 1
-        }
-        if (is.null(weighting.term)) {
-          stop("Cannot determine the weighting function.")
-        }
-
-        D1[k] <- D*sum(weighting.term*a[,k]*(dat[,i]-P)) #first derivative
-        for(l in 1:dim){
-          Hess[k,l] <- (-(D)^2)*sum(weighting.term*a[,k]*a[,l]*(1-P)*(P)) #Hessian matrix of 2nd derivatives
+        ex<-a*(theta-d) # Calculate exponent for probability function if unidimensional
+      }else{
+        ex<-a%*%theta+d # Calculate exponent for multiple dimensions
+      } 
+      P<-1/(1+exp(-D*ex)) # Calculate probability
+      
+      Hess<-matrix(ncol = dim, nrow = dim) # Initialize Hessian matrix
+      D1<-matrix(nrow=dim) # Initialize First derivative matrix
+      
+      # Calculate residual based on specified type
+      if(!is.null(residual)){
+        if(residual=="information"){
+          resid.r<-ex
+        }else if(residual=="standardized"){
+          resid.r<-(dat[,i]-P)/sqrt(P*(1-P))
         }
       }
-      if(is.singular.matrix(Hess)){ #check if Hessian matrix is singular
+      
+      
+      # Calculate weight based on specified type
+      weighting.term <- NULL
+      if (weight.type == "bisquare") { #Bisquare weighting
+        weighting.term <- bisquare(resid.r, tuning.par)
+      } else if (weight.type == "Huber") { # Huber weighting
+        weighting.term <- huber(resid.r, tuning.par)
+      } else { # Regular Maximum likelihood estimation
+        weighting.term <- 1
+      }
+      if (is.null(weighting.term)) {
+        stop("Cannot determine the weighting function.")
+      }
+      # Caluclae the first derivative (D1) and the Hessian matrix
+      for(k in 1:dim){
+        D1[k] <- D*sum(weighting.term*a[,k]*(dat[,i]-P)) # First derivative
+        for(l in 1:dim){
+          Hess[k,l] <- (-(D)^2)*sum(weighting.term*a[,k]*a[,l]*(1-P)*(P)) # Hessian matrix of 2nd derivatives
+        }
+      }
+      # Check if Hessian matrix is singular
+
+      if(is.singular.matrix(Hess)){ 
         convergence[i,]<-rep("Singular", dim)
-        for(h in 1:dim){ #bound theta estimates between -3 and 3
-          if(theta[h]>3){theta[h]<-NA}else if(theta[h]<(-3)){theta[h]<-NA}
+        for(h in 1:dim){ # Bound theta estimates between -3 and 3
+          if(theta[h]>3){
+            theta[h]<-NA
+          }else if(theta[h]<(-3)){
+            theta[h]<-NA
+          }
         }
         break
       }
+      # Check for nonconverging theta updates
       if(any(is.na(theta-solve(Hess)%*%D1))){
         theta.out[i,]<-theta<-theta-solve(Hess)%*%D1
         convergence[i,]<-as.numeric(is.na(theta.out[i,]))
-        break # break if noncomverging
+        break # Break if nonconverging
       }
-      theta<-theta-solve(Hess)%*%D1 #update theta
-      residual[,i,j]<-ex
-      log_like<-sum(log(P))-sum(log(P0)) #compare log-likelihood with log-likelihood from previous iteration for convergence criterion
-      if(abs(log_like)<cutoff){
+      # Update theta estimates 
+      theta<-theta-solve(Hess)%*%D1 
+      if(!is.null(residual)){
+        residual.out[,i,j]<-resid.r
+      }
+      
+      # Compare log-likelihood with log-likelihood from previous iteration for convergence criterion
+      log_like<-sum(log(P))-sum(log(P0)) 
+      if(!is.nan(log_like) & abs(log_like)<cutoff){
         break
       }
-      P0<-P
-      theta.progression[,j,i]<-theta
-      #print(theta) #view convergence of theta for debugging purposes
+      P0<-P # Update previous probability
+      theta.progression[,j,i]<-theta # Store theta from this iteration
     }
-    if(j==iter){#if theta never converged to tolerance
+    # If theta never converged to tolerance, set theta to NA
+    if(j==iter){
       theta.out[i,]<-theta<-rep(NA, dim)
       convergence[i,]<-rep(1, dim)
     }
-    for(h in 1:dim){ #bound theta estimates between -3 and 3
-      if(!is.na(theta[h]) & theta[h]>3){theta[h]<-3}
-      if(!is.na(theta[h]) & theta[h]<(-3)){theta[h]<-(-3)}
+    # Bound theta estimates between -3 and 3
+    for(h in 1:dim){ 
+      if(!is.na(theta[h]) & theta[h]>3){
+        theta[h]<-3
+      }
+      if(!is.na(theta[h]) & theta[h]<(-3)){
+        theta[h]<-(-3)
+      }
     }
+    # Store final theta estimates
     theta.out[i,]<-theta
+    std.err<-std.err.dichotomous(theta, d, a, D = 1.7)
+    standard.errs[i,]<-ifelse(is.na(std.err), NA, std.err)
   }
-  return(list(Theta = theta.out, Convergence = convergence, theta.progression = theta.progression, residual=residual))
+  return(list(theta = theta.out, standard.errors=standard.errs, convergence = convergence, theta.progression = theta.progression, residual=residual.out))
 }
 
 #' Ability Estimation Function Using Robust Estimation (GRM)
