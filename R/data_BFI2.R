@@ -1,4 +1,4 @@
-#' Description of BFI-2 data
+#' Description of BFI2 data
 #'
 #' Data obtained from the Big Five Inventory-2 (BFI-2; Ober et al., 2021) data collected from adolescents ages 14 to 17 years old. The inventory contains 60 items on a 5-point Likert scale, where exactly 12 items load onto each of the five personality factors.  Data for 838 subjects was collected, with no missing responses.
 #'
