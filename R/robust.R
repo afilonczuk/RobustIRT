@@ -759,13 +759,13 @@ choose.tuco<-function(r, H=NULL, B=NULL){
 #' @param a \eqn{J \times L} matrix of slope parameters for \emph{J} items and \emph{L} dimensions (\emph{L=1} if using the GRM or unidimensional 2PL model)
 #' @param b If type = “GRM”, an \eqn{J \times (K-1)} matrix of intercept parameters
 #' @param d If type = “MIRT”, a vector of discrimination parameters for \emph{J} items
-#' @param iter Maximum number of iterations. Default is 100
+#' @param iter Maximum number of iterations. Default is 30
 #' @param cutoff Threshold value to terminate the iteration when the likelihood changes below this value, which means that the estimation is converged. Default is 0.01.
 #' @param H Huber tuning parameter
 #' @param B Bisquare tuning parameter
 #' @param same.plot.dim If TRUE and type = “MIRT”, estimates across all \emph{L} dimensions will be plotted on the same graph. If FALSE (default) and type = “MIRT”, one plot per dimension will be generated.
 #' @param same.plot If TRUE (default) and both \emph{H} and \emph{B} are supplied, generates both the Huber and bisquare plots in the same image frame. If FALSE, the Huber and bisquare plots are generated on separate images.
-#' @param type MIRT or GRM
+#' @param type Type of data: "Dichotomous" for dichotomous data (multidimensional or unidimensional) or "GRM" for Likert-type data
 #' @details When the data is not disturbed, robust estimates should not differ greatly from the maximum likelihood estimate (MLE).
 #'                                       By plotting the robust estimates against the MLE, the user can identify possible aberrant trends, if the robust estimates are far from the MLE, as indicated by the distance from the \eqn{y=x} identity line.
 #'                                       Larger discrepancies between the point plotted for a subject and the identity line suggest there may be some disturbance in this subject’s data that the robust estimation may be correcting.
