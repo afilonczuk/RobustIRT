@@ -647,11 +647,12 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type
 #' @param H Huber tuning parameter
 #' @param B Bisquare tuning parameter
 #' @details The goal of this plot is to visualize the proportion of residuals that are downweighted based on the tuning parameter and allow the researcher to choose a tuning parameter that suits their data well.
-#               For a set of residuals with larger variance, a larger tuning parameter should be used.
-#               Generally, the tail end of the weighting function should approach the tail end of the distribution of residuals.
-#               To increase the downweighting applied in estimation, use a smaller tuning parameter. To decrease the amount of downweighting, use a greater tuning parameter.
-#               The function will plot the histogram of residuals below (1) the Huber weight curve (Huber, 1981) if \emph{H} is supplied to the function, (2) Tukey's bisquare weight curve (Mosteller & Tukey, 1977) if \emph{B} is supplied, or (3) both the Huber and bisquare weight curves if both tuning parameters are supplied.
-#               If no tuning parameter is supplied, just the histogram of residuals is generated.
+#'               For a set of residuals with larger variance, a larger tuning parameter should be used.
+#'               Generally, the tail end of the weighting function should approach the tail end of the distribution of residuals.
+#'               To increase the downweighting applied in estimation, use a smaller tuning parameter. To decrease the amount of downweighting, use a greater tuning parameter.
+#'               The function will plot the histogram of residuals below (1) the Huber weight curve (Huber, 1981) if \emph{H} is supplied to the function, (2) Tukey's bisquare weight curve (Mosteller & Tukey, 1977) if \emph{B} is supplied, or (3) both the Huber and bisquare weight curves if both tuning parameters are supplied.
+#'               If \emph{H} is supplied, vertical lines will be displayed at \emph{H} and \emph{-H} to highlight the amount of data that is downweighted (a residual less than \emph{|H|}) versus not downweighted.
+#'               If no tuning parameter is supplied, just the histogram of residuals is generated.
 #' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
 #' @return Histogram plot of residuals beneath a graph of the weight functions vs. the residuals
@@ -723,31 +724,40 @@ theta.est.grm<-function(dat, a, b, iter=30, cutoff=0.01, init.val=0, weight.type
 
 choose.tuco<-function(r, H=NULL, B=NULL){
   # r is a vector of residuals
+  
   residuals<-data.frame(Residual =r)
   hist.out<-ggplot(residuals, aes(x=Residual))+geom_histogram(aes(y = ..density..), bins=50)+ ylab("Density")
   if(!is.null(H) & !is.null(B)){
+    hist.out<-hist.out+ geom_vline(xintercept = -H, linetype="dashed", color = "grey")+ 
+      geom_vline(xintercept = H, linetype="dashed", color = "grey")
     weight.out<-ggplot()+stat_function(fun=function(x) huber(x, H), aes(colour = "Huber"))+
-      stat_function(fun=function(x) bisquare(x, B),  aes(colour = "Bisquare"))+
+      stat_function(fun=function(x) bisquare(x, B),  aes(colour = "Bisquare"))+ 
+      geom_vline(xintercept = -H, linetype="dashed", color = "grey")+ 
+      geom_vline(xintercept = H, linetype="dashed", color = "grey")+
       xlim(min(r, na.rm =T), max(r, na.rm =T)) + ylab("Weight")+
-      scale_color_manual(name = "Function", breaks=c('Bisquare', 'Huber'),
-                         values=c('Bisquare'="darkcyan", 'Huber'='firebrick')) +theme(legend.position = c(.9, .74))+
+      scale_color_manual(name = "Function", breaks=c('Bisquare', 'Huber'), values=c('Bisquare'="darkcyan", 'Huber'='firebrick')) +
+      theme(legend.position = c(.9, .74))+
       ggtitle("Weights Applied in Estimation")
-    return(do.call(ggarrange, c(list(weight.out, hist.out+ggtitle("Histogram of Residuals")), ncol = 1, nrow = 2)))
+    return(do.call(ggarrange, c(list(weight.out+xlab(NULL), hist.out+ggtitle("Histogram of Residuals")), ncol = 1, nrow = 2)))
   }else if(is.null(H) & !is.null(B)){
     weight.out<-ggplot()+stat_function(fun=function(x) bisquare(x, B), aes(colour = "Bisquare"))+
       xlim(min(r, na.rm =T), max(r, na.rm =T)) + ylab("Weight")+
-      scale_color_manual(name = "Function", breaks=c('Bisquare'),
-                         values=c('Bisquare'="darkcyan")) +theme(legend.position = c(.9, .74))+
+      scale_color_manual(name = "Function", breaks=c('Bisquare'), values=c('Bisquare'="darkcyan")) +
+      theme(legend.position = c(.9, .74))+
       ggtitle("Weights Applied in Estimation")
-    return(do.call(ggarrange, c(list(weight.out, hist.out+ggtitle("Histogram of Residuals")), ncol = 1, nrow = 2)))
+    return(do.call(ggarrange, c(list(weight.out+xlab(NULL), hist.out+ggtitle("Histogram of Residuals")), ncol = 1, nrow = 2)))
   }else if(is.null(B) & !is.null(H)){
+    hist.out<-hist.out+ geom_vline(xintercept = -H, linetype="dashed", color = "grey")+ 
+      geom_vline(xintercept = H, linetype="dashed", color = "grey")
     weight.out<-ggplot()+stat_function(fun=function(x) huber(x, H), aes(colour = "Huber"))+
       xlim(min(r, na.rm =T), max(r, na.rm =T)) + ylab("Weight")+
-      scale_color_manual(name = "Function", breaks=c('Huber'),
-                         values=c('Huber'='firebrick')) +theme(legend.position = c(.9, .74))+
+      geom_vline(xintercept = -H, linetype="dashed", color = "grey")+ 
+      geom_vline(xintercept = H, linetype="dashed", color = "grey") + 
+      scale_color_manual(name = "Function", breaks=c('Huber'), values=c('Huber'='firebrick')) +
+      theme(legend.position = c(.9, .74))+
       ggtitle("Weights Applied in Estimation")
-    return(do.call(ggarrange, c(list(weight.out, hist.out+ggtitle("Histogram of Residuals")), ncol = 1, nrow = 2)))
-  }else {
+    return(do.call(ggarrange, c(list(weight.out+xlab(NULL), hist.out+ggtitle("Histogram of Residuals")), ncol = 1, nrow = 2)))
+  }else{
     return(hist.out+ggtitle("Histogram of Residuals"))
   }
 }
