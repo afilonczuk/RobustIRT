@@ -40,12 +40,12 @@ pstar_to_p<-function(pstar){
   return(P)
 }
 
-#' Response Probability Calculation (2PL)
+#' Response Probability Calculation (MIRT)
 #'
-#' Calculate the item response probabilities given the item parameters and latent trait vector for person \emph{i}
-#' \eqn{\boldsymbol{\theta}_i = ({\theta}_{i1}, {\theta}_{i2}, ... {\theta}_{iL})'} on \emph{L} dimensions, according to the multidimensional IRT model (McKinley & Reckase, 1983):
-#' \eqn{P (X_{ij}=1 | \boldsymbol{\theta}_i) =  \frac{1}{1+ e^{-1.7(\boldsymbol{a_j}\boldsymbol\theta+d_j)}}} for \eqn{j=1,...,J} items.
-#' An item \emph{j} has slope parameters \eqn{\boldsymbol{a_j}=(a_{1j}, a_{2j}, ..., a_{Lj})'} and intercept parameter \eqn{d_j}.
+#' Calculate the item response probabilities given the item parameters and latent trait vector for person \emph{i}, which is
+#' \eqn{\boldsymbol{\theta}_i = ({\theta}_{i1}, {\theta}_{i2}, ... {\theta}_{iL})'} for \emph{L} dimensions, according to the multidimensional IRT model (MIRT; McKinley & Reckase, 1983):
+#' \deqn{P (X_{ij}=1 | \boldsymbol{\theta}_i) =  \frac{1}{1+ e^{-1.7(\boldsymbol{a_j}\boldsymbol\theta+d_j)}}} for \eqn{j=1,...,J} items.
+#' An item \emph{j} has slope parameters \eqn{\boldsymbol{a}_j=(a_{1j}, a_{2j}, ..., a_{Lj})'} and intercept parameter \eqn{d_j}.
 #' @param thetas A vector of length \emph{L} containing a subject's latent traits, where \emph{L} is the number of test dimensions
 #' @param a A \eqn{J \times L} matrix containing fixed item slope parameters for \emph{L} dimensions and \emph{J} test items
 #' @param d A vector of length \emph{J} containing fixed intercept parameters, for \emph{J} test items
@@ -228,16 +228,16 @@ std.err.dichotomous<- function(theta, d, a, D = 1.7){
 #' @param tuning.par The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting.
 #' @param residual Type of residual if using bisquare or Huber weight functions. Default is "information" while "standardized" can alternatively be used.
 #' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\boldsymbol{\theta}}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
-#' Using the multidimensional IRT model for dichotomous data (McKinley & Reckase, 1983), the probability of a correct response (e.g., "1") on item \emph{j} is given by the formula \eqn{P(X_{ij}=1 | \boldsymbol{\theta}_i) =  \frac{1}{1+ e^{-1.7(\boldsymbol{a}_j\boldsymbol\theta_i+d_j)}},} where \eqn{\boldsymbol{a}_j} is a \eqn{L \times J} matrix of item slope parameters for \emph{J} items and \emph{L} dimensions. The intercept parameter is \eqn{d_j}.  
-#' The 2PL IRT model for unidimensional data subsumes the MIRT model and can be used for unidimensional robust estimation (when \emph{L}=1), using the formula \eqn{P(X_{ij} =1 | \theta_i) = \frac{1}{1+ e^{-1.7a_{j}(\theta_i-b_{j})}}} where \eqn{a_j} is the same as the multidimensional case where \emph{L=1}. The parameter \eqn{b_j} differs from MIRT and can be interpreted as the item difficulty.
-#' The contribution of item \emph{j} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_j)} as a function of a residual \eqn{r_{ij}} for the item \emph{j} and person \emph{i}:
-#' \deqn{\sum_j^J \omega(r_{ij}) \frac{\partial}{\partial\boldsymbol\theta_i} \ln L(\boldsymbol\theta_j;x_{ij}) = 0 }
-#' The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_{ij} = \textbf a_j\boldsymbol\theta_i + d_j } in the multidimensional case.
-#' Two types of weight functions are used: Tukey's bisquare weighting function (Mosteller & Tukey, 1977)
-#' \deqn{\omega(r_{ij})=\begin{cases}[1-(r_{ij}/B)^2]^2, & \text{if} |r_{ij}|\leq B.\\0, & \text{if} |r_{ij}|>B.\end{cases}}
-#' and the Huber weighting function (Huber, 1981)
-#' \deqn{\omega(r_{ij})=\begin{cases}1, & \text{if} |r_{ij}|\leq H.\\H/|r_{ij}|, & \text{if} |r_{ij}|>H.\end{cases}}
-#' Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
+#  Using the multidimensional IRT model for dichotomous data (McKinley & Reckase, 1983), the probability of a correct response (e.g., "1") on item \emph{j} is given by the formula \eqn{P(X_{ij}=1 | \boldsymbol{\theta}_i) =  \frac{1}{1+ e^{-1.7(\boldsymbol{a}_j\boldsymbol\theta_i+d_j)}},} where \eqn{\boldsymbol{a}_j} is a \eqn{L \times J} matrix of item slope parameters for \emph{J} items and \emph{L} dimensions. The intercept parameter is \eqn{d_j}.  
+#  The 2PL IRT model for unidimensional data subsumes the MIRT model and can be used for unidimensional robust estimation (when \emph{L}=1), using the formula \eqn{P(X_{ij} =1 | \theta_i) = \frac{1}{1+ e^{-1.7a_{j}(\theta_i-b_{j})}}} where \eqn{a_j} is the same as the multidimensional case where \emph{L=1}. The parameter \eqn{b_j} differs from MIRT and can be interpreted as the item difficulty.
+#  The contribution of item \emph{j} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_j)} as a function of a residual \eqn{r_{ij}} for the item \emph{j} and person \emph{i}:
+#  \deqn{\sum_j^J \omega(r_{ij}) \frac{\partial}{\partial\boldsymbol\theta_i} \ln L(\boldsymbol\theta_j;x_{ij}) = 0 }
+#  The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_{ij} = \textbf a_j\boldsymbol\theta_i + d_j } in the multidimensional case.
+#  Two types of weight functions are used: Tukey's bisquare weighting function (Mosteller & Tukey, 1977)
+#  \deqn{\omega(r_{ij})=\begin{cases}[1-(r_{ij}/B)^2]^2, & \text{if} |r_{ij}|\leq B.\\0, & \text{if} |r_{ij}|>B.\end{cases}}
+#  and the Huber weighting function (Huber, 1981)
+#  \deqn{\omega(r_{ij})=\begin{cases}1, & \text{if} |r_{ij}|\leq H.\\H/|r_{ij}|, & \text{if} |r_{ij}|>H.\end{cases}}
+#  Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
 #' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
 #' @references McKinley, R. L., & Reckase, M. D. (1983, August). \emph{An Extension of the Two-Parameter Logistic Model to the Multidimensional Latent Space} (Research No. ONR83-2). Iowa City, IA: American College Testing Program.
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
@@ -420,21 +420,21 @@ theta.est<-function(dat, a, d, iter=30, cutoff=.01, init.val=rep(0,ncol(a)), wei
 #' @param weight.category The weighting strategy to use: "equal", "bisquare" and "Huber". Default is "equal", which is equally weighted as in standard maximum likelihood estimation.
 #' @param tuning.par The tuning parameter for "bisquare" or "Huber" weighting functions. Greater tuning parameters result in less downweighting in robust estimation.
 #' @details The goal of robust estimation is to downweigh potentially aberrant responses to lessen their impact on the estimation of \eqn{\theta_i}. Robust estimates resist the harmful effects of response disturbances and tend to be less biased estimates of true ability than maximum likelihood estimates.
-#' Under the graded response model (GRM; Samejima, 1969), the probability that a subject responds in or above a category \emph{k} for item \emph{j} is \eqn{P^*_{jk}(\theta_i) = \frac{1}{1+ e^{-a_j (\theta_i-b_{jk})}}}  (Embretson & Reise, 2000). \eqn{a_j} is the item discrimination parameter. There are \emph{K} categories and \eqn{K-1} threshold parameters (\eqn{b_{j,1}, ..., b_{j,K-1}}), where \eqn{b_{j,k}} separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,..K-1}).
-#' The probability of endorsing exactly category \eqn{k} is therefore: \eqn{P_{jk}(\theta_i) = P^*_{j,k}(\theta_i) - P^*_{j,k+1}(\theta_i),} where \eqn{P^*_{j1}(\theta_i) \equiv 1.0} and \eqn{P^*_{jK}(\theta_i) \equiv 0.0.}
-#' The contribution of item \emph{j} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_{ij})} as a function of a residual \eqn{r_{ij}} for the item:
-#' \deqn{\sum^J_{j=1} \omega(r_{ij}) \sum^K_{k=1} u_{jk}\text{log}P_{jk} = 0 }
-#’ \eqn{u_{jk}} is an indicator function: \deqn{u_{jk} = \begin{cases}
-#      1 & \text{if } X_{ij} = k; \\
-#      0 & \text{otherwise}.
-#   \end{cases} }
-#' The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_{ij} = \frac{1}{\sigma_{X_{ij}}}\left[X_{ij} - E(X_{ij}|\hat{\theta}_i)\right]} for the GRM.
-#'  The difference in fit is determined between the observed response \eqn{X_{ij}} and expected score \eqn{E(X_{ij}|\hat{\theta}_i) = \sum_{k=1}^KkP_{jk}(\hat{\theta}_i)}, and scaled by the variance \eqn{\sigma_{X_{ij}}^2 = \sum_{k=1}^K (X_{ijk}-E[X_{ij}|\hat{\theta}_i])^2P_{jk}(\hat{\theta}_i).}
-#' Two types of weight functions are used: Tukey's bisquare weighting function (Mosteller & Tukey, 1977)
-#' \deqn{\omega(r_{ij})=\begin{cases}[1-(r_{ij}/B)^2]^2, & \text{if} |r_{ij}|\leq B.\\0, & \text{if} |r_{ij}|>B.\end{cases}}
-#' and the Huber weighting function (Huber, 1981)
-#' \deqn{\omega(r_{ij})=\begin{cases}1, & \text{if} |r_{ij}|\leq H.\\H/|r_{ij}|, & \text{if} |r_{ij}|>H.\end{cases}}
-#' Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
+#  Under the graded response model (GRM; Samejima, 1969), the probability that a subject responds in or above a category \emph{k} for item \emph{j} is \eqn{P^*_{jk}(\theta_i) = \frac{1}{1+ e^{-a_j (\theta_i-b_{jk})}}}  (Embretson & Reise, 2000). \eqn{a_j} is the item discrimination parameter. There are \emph{K} categories and \eqn{K-1} threshold parameters (\eqn{b_{j,1}, ..., b_{j,K-1}}), where \eqn{b_{j,k}} separates response category \eqn{k} and \eqn{k+1} (\eqn{k=1,..K-1}).
+#  The probability of endorsing exactly category \eqn{k} is therefore: \eqn{P_{jk}(\theta_i) = P^*_{j,k}(\theta_i) - P^*_{j,k+1}(\theta_i),} where \eqn{P^*_{j1}(\theta_i) \equiv 1.0} and \eqn{P^*_{jK}(\theta_i) \equiv 0.0.}
+#  The contribution of item \emph{j} to the overall log-likelihood for one subject is weighted with a weight \eqn{\omega(r_{ij})} as a function of a residual \eqn{r_{ij}} for the item:
+#  \deqn{\sum^J_{j=1} \omega(r_{ij}) \sum^K_{k=1} u_{jk}\text{log}P_{jk} = 0 }
+#  \eqn{u_{jk}} is an indicator function: \deqn{u_{jk} = \begin{cases}
+#       1 & \text{if } X_{ij} = k; \\
+#       0 & \text{otherwise}.
+#    \end{cases} }
+#  The residual, which measures the inconsistency of a response from the subject's assumed response model, is \deqn{r_{ij} = \frac{1}{\sigma_{X_{ij}}}\left[X_{ij} - E(X_{ij}|\hat{\theta}_i)\right]} for the GRM.
+#  The difference in fit is determined between the observed response \eqn{X_{ij}} and expected score \eqn{E(X_{ij}|\hat{\theta}_i) = \sum_{k=1}^KkP_{jk}(\hat{\theta}_i)}, and scaled by the variance \eqn{\sigma_{X_{ij}}^2 = \sum_{k=1}^K (X_{ijk}-E[X_{ij}|\hat{\theta}_i])^2P_{jk}(\hat{\theta}_i).}
+#  Two types of weight functions are used: Tukey's bisquare weighting function (Mosteller & Tukey, 1977)
+#  \deqn{\omega(r_{ij})=\begin{cases}[1-(r_{ij}/B)^2]^2, & \text{if} |r_{ij}|\leq B.\\0, & \text{if} |r_{ij}|>B.\end{cases}}
+#  and the Huber weighting function (Huber, 1981)
+#  \deqn{\omega(r_{ij})=\begin{cases}1, & \text{if} |r_{ij}|\leq H.\\H/|r_{ij}|, & \text{if} |r_{ij}|>H.\end{cases}}
+#  Both functions are effective in estimating more accurate scores with aberrant data, although the bisquare weight function may lead to nonconvergence when using data containing a high proportion of incorrect responses (Schuster & Yuan, 2011).
 #' @references Embretson, S. E., & Reise, S. P. (2000). \emph{Item response theory for psychologists.} Mahwah, N.J: L. Erlbaum Associates.
 #' @references Huber, P. (1981) \emph{Robust Statistics}. Wiley, New York. https://doi.org/10.1002/0471725250
 #' @references Mosteller, F., & Tukey, J. W. (1977). \emph{Data Analysis and Regression: A Second Course in Statistics}. Reading, MA: Addison-Wesley Pub Co.
